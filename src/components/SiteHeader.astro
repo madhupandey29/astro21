@@ -71,31 +71,41 @@ const {
           aria-label="Country, state and city selection"
         >
           <div class="country-mega">
-            <div class="country-mega-header">
-              <div class="country-mega-header-top">
-                <span class="country-mega-title">CHOOSE YOUR LOCATION</span>
-                <span class="country-mega-sub">
-                  Search by city, state or country
-                </span>
-              </div>
+                 <div class="country-mega-header">
+            <!-- Close button for desktop mega menu -->
+            <button
+              type="button"
+              class="country-mega-close"
+              aria-label="Close location selector"
+            >
+              <span class="country-mega-close-icon" aria-hidden="true"></span>
+            </button>
 
-              <!-- Global search: city / state / country -->
-              <div class="location-search-wrapper">
-                <div class="location-search-inner">
-                  <span class="location-search-icon" aria-hidden="true"></span>
-                  <input
-                    type="text"
-                    class="location-search-input"
-                    placeholder="Search by city, state or country"
-                    aria-label="Search by city, state or country"
-                  />
-                </div>
-                <div
-                  class="location-search-results"
-                  aria-live="polite"
-                ></div>
-              </div>
+            <div class="country-mega-header-top">
+              <span class="country-mega-title">CHOOSE YOUR LOCATION</span>
+              <span class="country-mega-sub">
+                Search by city, state or country
+              </span>
             </div>
+
+            <!-- Global search: city / state / country -->
+            <div class="location-search-wrapper">
+              <div class="location-search-inner">
+                <span class="location-search-icon" aria-hidden="true"></span>
+                <input
+                  type="text"
+                  class="location-search-input"
+                  placeholder="Search by city, state or country"
+                  aria-label="Search by city, state or country"
+                />
+              </div>
+              <div
+                class="location-search-results"
+                aria-live="polite"
+              ></div>
+            </div>
+          </div>
+
 
             <div class="country-mega-body">
               <!-- Left: all countries -->

@@ -1423,3 +1423,16 @@
     updateMobileFlag();
   }
 })();
+document.addEventListener("DOMContentLoaded", () => {
+  const trigger = document.querySelector(".country-trigger");
+  const dropdown = document.querySelector(".country-dropdown");
+  const closeBtn = document.querySelector(".country-mega-close");
+
+  if (closeBtn && trigger && dropdown) {
+    closeBtn.addEventListener("click", () => {
+      dropdown.classList.remove("open");
+      trigger.classList.remove("is-active");
+      trigger.setAttribute("aria-expanded", "false");
+    });
+  }
+});

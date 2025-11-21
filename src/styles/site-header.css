@@ -425,8 +425,8 @@ body {
 
 /* Left column: countries */
 .country-column {
-  width: 300px;
-  flex-shrink: 0;
+  flex: 1 1 0;                     /* CHANGED: equal flex */
+  min-width: 0;                    /* allow shrinking */
   border-right: 2px solid var(--tp-grey-2);
   padding: 12px;
   background: #f8f9fc;
@@ -537,7 +537,8 @@ body {
 /* Middle & right columns */
 .state-column,
 .city-column {
-  flex: 1;
+  flex: 1 1 0;                     /* CHANGED: equal flex */
+  min-width: 0;                    /* allow shrinking */
   padding: 12px;
   overflow-y: auto;
 }
@@ -1356,4 +1357,54 @@ body:has(#nav-open:checked) {
     rgba(44, 76, 151, 0.05),
     transparent
   );
+}
+/* Close button inside desktop location mega menu */
+.country-mega-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(44, 76, 151, 0.08);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.country-mega-close:hover,
+.country-mega-close:focus-visible {
+  background: rgba(44, 76, 151, 0.14);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.country-mega-close-icon {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.country-mega-close-icon::before,
+.country-mega-close-icon::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 16px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--ink);
+}
+
+.country-mega-close-icon::before {
+  transform: rotate(45deg);
+}
+
+.country-mega-close-icon::after {
+  transform: rotate(-45deg);
 }
