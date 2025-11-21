@@ -1,0 +1,132 @@
+---
+/**
+ * Server-only component. Fetches AboutUs, sanitizes HTML, and renders it.
+ * Ships 0KB JS. Works with your existing API & headers.
+ */
+
+export interface Props {
+  aboutusUrl?: string;   // optional override
+  class?: string;        // optional class override
+  fallback?: string;     // optional fallback text if API fails/empty
+}
+
+const {
+  aboutusUrl,
+  class: className = "text-base sm:text-lg text-slate-700 leading-relaxed whitespace-pre-wrap break-words",
+  fallback = "",
+} = Astro.props as Props;
+
+/* ---------- Config (reads both PUBLIC_* and server-only names) ---------- */
+const RAW_BASE = (
+  import.meta.env.PUBLIC_API_BASE_URL ??
+  import.meta.env.NEXT_PUBLIC_API_BASE_URL ??
+  import.meta.env.API_BASE_URL ??
+  "http://localhost:7000/landing"
+).replace(/\/+$/, "");
+
+const ABOUTUS_URL = aboutusUrl ?? `${RAW_BASE}/aboutus`;
+
+const API_KEY =
+  import.meta.env.API_KEY ??
+  import.meta.env.PUBLIC_API_KEY ??
+  import.meta.env.NEXT_PUBLIC_API_KEY ??
+  "";
+
+const ADMIN_EMAIL =
+  import.meta.env.ADMIN_EMAIL ??
+  import.meta.env.PUBLIC_ADMIN_EMAIL ??
+  import.meta.env.NEXT_PUBLIC_ADMIN_EMAIL ??
+  "";
+
+const API_KEY_HEADER =
+  import.meta.env.API_KEY_HEADER ??
+  import.meta.env.PUBLIC_API_KEY_HEADER ??
+  import.meta.env.NEXT_PUBLIC_API_KEY_HEADER ??
+  "x-api-key";
+
+const ADMIN_EMAIL_HEADER =
+  import.meta.env.ADMIN_EMAIL_HEADER ??
+  import.meta.env.PUBLIC_ADMIN_EMAIL_HEADER ??
+  import.meta.env.NEXT_PUBLIC_ADMIN_EMAIL_HEADER ??
+  "x-admin-email";
+
+const headers: Record<string, string> = { Accept: "application/json" };
+if (API_KEY) headers[API_KEY_HEADER] = String(API_KEY);
+if (ADMIN_EMAIL) headers[ADMIN_EMAIL_HEADER] = String(ADMIN_EMAIL);
+
+/* ---------- Helpers ---------- */
+function pickAboutObj(json: any): any {
+  const root =
+    json?.data?.aboutUs ??
+    json?.data?.aboutus ??
+    json?.aboutUs ??
+    json?.aboutus ??
+    json?.data ??
+    json;
+  if (Array.isArray(root)) return root[0] ?? null;
+  if (Array.isArray(root?.aboutUs)) return root.aboutUs[0] ?? null;
+  if (Array.isArray(root?.aboutus)) return root.aboutus[0] ?? null;
+  return root ?? null;
+}
+
+function pickHtml(obj: any): string | null {
+  if (!obj || typeof obj !== "object") return null;
+  const candidates = [
+    obj.descriptionmedium,
+    obj.descriptionsmall,
+    obj.descriptionlarger,
+    obj.description1,
+    obj.description2,
+    obj.description3,
+  ];
+  for (const c of candidates) if (typeof c === "string" && c.trim()) return c.trim();
+  return null;
+}
+
+/** Small allow-list sanitizer for DB HTML */
+function sanitizeHtml(input: string): string {
+  if (!input) return "";
+  let out = input;
+
+  // strip scripts
+  out = out.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "");
+  // remove inline event handlers
+  out = out.replace(/\son\w+\s*=\s*(['"]).*?\1/gi, "");
+  // block javascript:/data: in href/src
+  out = out.replace(/\s(href|src)\s*=\s*(['"])\s*(javascript:|data:)[\s\S]*?\2/gi, '$1="#"');
+
+  // allow-list tags; keep only href on <a>, drop style/other attrs (except class)
+  const allowed = /^(h1|h2|h3|h4|h5|h6|p|br|strong|b|em|i|u|ul|ol|li|a|span|div)$/i;
+  out = out.replace(/<\/?([a-z0-9\-]+)([^>]*)>/gi, (m, tag, attrs) => {
+    if (!allowed.test(tag)) return "";
+    if (/^a$/i.test(tag)) {
+      const hrefMatch = attrs.match(/\shref\s*=\s*(['"]).*?\1/i);
+      const href = hrefMatch ? hrefMatch[0] : "";
+      return `<a${href} target="_blank" rel="noopener noreferrer">`;
+    }
+    const safe = attrs
+      .replace(/\sstyle\s*=\s*(['"]).*?\1/gi, "")
+      .replace(/\s(?!class=)[a-z-]+(\s*=\s*(['"]).*?\2)?/gi, "");
+    return `<${tag}${safe}>`;
+  });
+
+  return out;
+}
+
+/* ---------- Fetch ---------- */
+let html = "";
+try {
+  const res = await fetch(ABOUTUS_URL, { headers });
+  if (res.ok) {
+    const j = await res.json();
+    const aboutObj = pickAboutObj(j);
+    html = pickHtml(aboutObj) || fallback;
+  } else {
+    html = fallback;
+  }
+} catch {
+  html = fallback;
+}
+---
+
+{html && <div class={className} set:html={sanitizeHtml(html)} />}

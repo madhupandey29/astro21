@@ -1,0 +1,1160 @@
+---
+// src/pages/market-area.astro
+
+import LandingLayout from "../layouts/LandingLayout.astro";
+
+const PAGE_TITLE = "Market Area – Countries, States & Cities";
+const PAGE_DESCRIPTION =
+  "Browse all countries, states and cities where we serve fabric buyers and garment manufacturers.";
+---
+
+<LandingLayout title={PAGE_TITLE} description={PAGE_DESCRIPTION}>
+  <main class="market-page">
+    <!-- Header -->
+    <div class="page-header">
+      <div class="header-content">
+        <h1 class="page-title">Market Area</h1>
+        <p class="page-subtitle">Explore our presence across different regions and locations</p>
+      </div>
+    </div>
+
+    <!-- Breadcrumb Navigation -->
+    <div class="breadcrumb-container">
+      <div class="breadcrumb" id="breadcrumb">
+        <button class="breadcrumb-item active" data-level="countries">
+          <span class="breadcrumb-icon">🌍</span>
+          <span class="breadcrumb-text">All Countries</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-container">
+      <!-- Selection Summary -->
+      <div class="selection-summary" id="selection-summary">
+        <div class="summary-item">
+          <span class="summary-label">Selected Country:</span>
+          <span class="summary-value" id="selected-country-value">None</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Selected State:</span>
+          <span class="summary-value" id="selected-state-value">None</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Selected City:</span>
+          <span class="summary-value" id="selected-city-value">None</span>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="quick-actions" id="quick-actions">
+        <button class="action-btn" id="clear-all-btn" disabled>
+          <span class="action-icon">🗑️</span>
+          Clear All
+        </button>
+        <button class="action-btn" id="back-btn" disabled>
+          <span class="action-icon">↩️</span>
+          Go Back
+        </button>
+      </div>
+
+      <!-- Countries Section -->
+      <section class="category-section" id="countries-section">
+        <div class="section-header">
+          <div class="header-icon">🌍</div>
+          <div class="header-text">
+            <h2>Countries</h2>
+            <p>Select a country to explore its regions</p>
+          </div>
+          <div class="header-stats">
+            <span class="count-badge" id="countries-count">0</span>
+            <span class="stat-text">countries available</span>
+          </div>
+        </div>
+        <div class="items-grid" id="country-list">
+          <!-- JS will populate -->
+        </div>
+      </section>
+
+      <!-- States Section -->
+      <section class="category-section hidden" id="states-section">
+        <div class="section-header">
+          <div class="header-icon">🗺️</div>
+          <div class="header-text">
+            <h2 id="states-title">States</h2>
+            <p id="states-subtitle">Select a state to view its cities</p>
+          </div>
+          <div class="header-stats">
+            <span class="count-badge" id="states-count">0</span>
+            <span class="stat-text">states available</span>
+          </div>
+        </div>
+        <div class="items-grid" id="state-list">
+          <!-- JS will populate -->
+        </div>
+      </section>
+
+      <!-- Cities Section -->
+      <section class="category-section hidden" id="cities-section">
+        <div class="section-header">
+          <div class="header-icon">🏙️</div>
+          <div class="header-text">
+            <h2 id="cities-title">Cities</h2>
+            <p id="cities-subtitle">Select a city to view its locations</p>
+          </div>
+          <div class="header-stats">
+            <span class="count-badge" id="cities-count">0</span>
+            <span class="stat-text">cities available</span>
+          </div>
+        </div>
+        <div class="items-grid" id="city-list">
+          <!-- JS will populate -->
+        </div>
+      </section>
+
+      <!-- Locations Section -->
+      <section class="category-section hidden" id="locations-section">
+        <div class="section-header">
+          <div class="header-icon">📍</div>
+          <div class="header-text">
+            <h2 id="locations-title">Market Locations</h2>
+            <p id="locations-subtitle">Available market areas and locations</p>
+          </div>
+          <div class="header-stats">
+            <span class="count-badge" id="locations-count">0</span>
+            <span class="stat-text">locations available</span>
+          </div>
+        </div>
+        <div class="items-grid" id="location-list">
+          <!-- JS will populate -->
+        </div>
+      </section>
+
+      <!-- Loading State -->
+      <div class="loading-section hidden" id="loading-section">
+        <div class="loading-spinner"></div>
+        <p>Loading locations...</p>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state global-hidden" id="global-empty-state">
+      <div class="empty-icon">🔍</div>
+      <h3>No locations found</h3>
+      <p>Try selecting different regions or check back later for updates.</p>
+      <button class="retry-btn" id="retry-btn">Refresh Data</button>
+    </div>
+  </main>
+
+  <!-- ================== JS ================== -->
+  <script type="module">
+    const API = {
+      countries: "https://test.amrita-fashions.com/api/countries",
+      states: "https://test.amrita-fashions.com/api/states",
+      cities: "https://test.amrita-fashions.com/api/cities",
+      locations: "https://test.amrita-fashions.com/api/locations",
+    };
+
+    /* ---------- Helpers ---------- */
+    const getId = (item) =>
+      item?._id ?? item?.id ?? item?.slug ?? item?.code ?? null;
+
+    const getName = (item) =>
+      item?.name ??
+      item?.title ??
+      item?.cityName ??
+      item?.stateName ??
+      item?.countryName ??
+      item?.locationName ??
+      "Unnamed";
+
+    const getCountryFromState = (state) => state?.country ?? null;
+    const getStateFromCity = (city) => city?.state ?? null;
+    const getCityFromLocation = (loc) => loc?.city ?? null;
+
+    async function fetchJson(url) {
+      try {
+        const loadingSection = document.getElementById('loading-section');
+        loadingSection.classList.remove('hidden');
+        
+        const res = await fetch(url, { headers: { Accept: "application/json" } });
+        if (!res.ok) return [];
+        const json = await res.json();
+
+        loadingSection.classList.add('hidden');
+
+        if (Array.isArray(json)) return json;
+
+        const data = json?.data;
+        if (data && typeof data === "object") {
+          if (Array.isArray(data.countries)) return data.countries;
+          if (Array.isArray(data.states)) return data.states;
+          if (Array.isArray(data.cities)) return data.cities;
+          if (Array.isArray(data.locations)) return data.locations;
+          if (Array.isArray(data.items)) return data.items;
+          for (const key of Object.keys(data)) {
+            if (Array.isArray(data[key])) return data[key];
+          }
+        }
+
+        if (json && typeof json === "object") {
+          if (Array.isArray(json.data)) return json.data;
+          if (Array.isArray(json.items)) return json.items;
+          if (Array.isArray(json.countries)) return json.countries;
+          if (Array.isArray(json.states)) return json.states;
+          if (Array.isArray(json.cities)) return json.cities;
+          if (Array.isArray(json.locations)) return json.locations;
+          for (const key of Object.keys(json)) {
+            if (Array.isArray(json[key])) return json[key];
+          }
+        }
+
+        return [];
+      } catch (err) {
+        document.getElementById('loading-section').classList.add('hidden');
+        console.error("Error fetching", url, err);
+        return [];
+      }
+    }
+
+    /* ---------- DOM Elements ---------- */
+    const countryListEl = document.getElementById("country-list");
+    const stateListEl = document.getElementById("state-list");
+    const cityListEl = document.getElementById("city-list");
+    const locationListEl = document.getElementById("location-list");
+
+    const statesSection = document.getElementById("states-section");
+    const citiesSection = document.getElementById("cities-section");
+    const locationsSection = document.getElementById("locations-section");
+
+    const statesTitle = document.getElementById("states-title");
+    const statesSubtitle = document.getElementById("states-subtitle");
+    const citiesTitle = document.getElementById("cities-title");
+    const citiesSubtitle = document.getElementById("cities-subtitle");
+    const locationsTitle = document.getElementById("locations-title");
+    const locationsSubtitle = document.getElementById("locations-subtitle");
+
+    const countriesCountEl = document.getElementById("countries-count");
+    const statesCountEl = document.getElementById("states-count");
+    const citiesCountEl = document.getElementById("cities-count");
+    const locationsCountEl = document.getElementById("locations-count");
+
+    const breadcrumbEl = document.getElementById("breadcrumb");
+    const selectionSummaryEl = document.getElementById("selection-summary");
+    const selectedCountryValue = document.getElementById("selected-country-value");
+    const selectedStateValue = document.getElementById("selected-state-value");
+    const selectedCityValue = document.getElementById("selected-city-value");
+    const clearAllBtn = document.getElementById("clear-all-btn");
+    const backBtn = document.getElementById("back-btn");
+    const retryBtn = document.getElementById("retry-btn");
+    const globalEmptyState = document.getElementById("global-empty-state");
+
+    /* ---------- Data ---------- */
+    let countries = [];
+    let states = [];
+    let cities = [];
+    let locations = [];
+
+    let selectedCountry = null;
+    let selectedState = null;
+    let selectedCity = null;
+    let selectionHistory = [];
+
+    function updateBreadcrumb() {
+      breadcrumbEl.innerHTML = '';
+      
+      // Always show countries
+      const countriesItem = createBreadcrumbItem('countries', '🌍', 'All Countries', true);
+      breadcrumbEl.appendChild(countriesItem);
+
+      // Add selected country
+      if (selectedCountry) {
+        breadcrumbEl.appendChild(createBreadcrumbConnector());
+        const countryItem = createBreadcrumbItem('states', '🗺️', getName(selectedCountry), false);
+        breadcrumbEl.appendChild(countryItem);
+      }
+
+      // Add selected state
+      if (selectedState) {
+        breadcrumbEl.appendChild(createBreadcrumbConnector());
+        const stateItem = createBreadcrumbItem('cities', '🏙️', getName(selectedState), false);
+        breadcrumbEl.appendChild(stateItem);
+      }
+
+      // Add selected city
+      if (selectedCity) {
+        breadcrumbEl.appendChild(createBreadcrumbConnector());
+        const cityItem = createBreadcrumbItem('locations', '📍', getName(selectedCity), false);
+        breadcrumbEl.appendChild(cityItem);
+      }
+    }
+
+    function createBreadcrumbItem(level, icon, text, isActive) {
+      const item = document.createElement('button');
+      item.className = `breadcrumb-item ${isActive ? 'active' : ''}`;
+      item.dataset.level = level;
+      
+      item.innerHTML = `
+        <span class="breadcrumb-icon">${icon}</span>
+        <span class="breadcrumb-text">${text}</span>
+      `;
+      
+      if (!isActive) {
+        item.addEventListener('click', () => handleBreadcrumbClick(level));
+      }
+      
+      return item;
+    }
+
+    function createBreadcrumbConnector() {
+      const connector = document.createElement('span');
+      connector.className = 'breadcrumb-connector';
+      connector.innerHTML = '›';
+      return connector;
+    }
+
+    function handleBreadcrumbClick(level) {
+      switch(level) {
+        case 'countries':
+          selectedCountry = null;
+          selectedState = null;
+          selectedCity = null;
+          break;
+        case 'states':
+          selectedState = null;
+          selectedCity = null;
+          break;
+        case 'cities':
+          selectedCity = null;
+          break;
+      }
+      rerender();
+    }
+
+    function updateSelectionSummary() {
+      selectedCountryValue.textContent = selectedCountry ? getName(selectedCountry) : 'None';
+      selectedStateValue.textContent = selectedState ? getName(selectedState) : 'None';
+      selectedCityValue.textContent = selectedCity ? getName(selectedCity) : 'None';
+
+      // Show/hide summary based on selections
+      selectionSummaryEl.classList.toggle('has-selection', selectedCountry || selectedState || selectedCity);
+    }
+
+    function updateQuickActions() {
+      const hasSelections = selectedCountry || selectedState || selectedCity;
+      clearAllBtn.disabled = !hasSelections;
+      
+      const canGoBack = selectionHistory.length > 0;
+      backBtn.disabled = !canGoBack;
+    }
+
+    function updateSectionVisibility() {
+      statesSection.classList.toggle('hidden', !selectedCountry);
+      citiesSection.classList.toggle('hidden', !selectedState);
+      locationsSection.classList.toggle('hidden', !selectedCity);
+
+      if (selectedCountry) {
+        statesTitle.textContent = `States in ${getName(selectedCountry)}`;
+        statesSubtitle.textContent = `Explore regions in ${getName(selectedCountry)}`;
+      }
+      if (selectedState) {
+        citiesTitle.textContent = `Cities in ${getName(selectedState)}`;
+        citiesSubtitle.textContent = `Discover cities in ${getName(selectedState)}`;
+      }
+      if (selectedCity) {
+        locationsTitle.textContent = `Locations in ${getName(selectedCity)}`;
+        locationsSubtitle.textContent = `Market areas in ${getName(selectedCity)}`;
+      }
+    }
+
+    function updateCounts() {
+      countriesCountEl.textContent = countries.length;
+      
+      if (selectedCountry) {
+        const visibleStates = states.filter((s) => {
+          const c = getCountryFromState(s);
+          const cid = getId(c);
+          return cid && getId(selectedCountry) && String(cid) === String(getId(selectedCountry));
+        });
+        statesCountEl.textContent = visibleStates.length;
+      } else {
+        statesCountEl.textContent = '0';
+      }
+
+      if (selectedState) {
+        const visibleCities = cities.filter((c) => {
+          const s = getStateFromCity(c);
+          const sid = getId(s);
+          return sid && getId(selectedState) && String(sid) === String(getId(selectedState));
+        });
+        citiesCountEl.textContent = visibleCities.length;
+      } else {
+        citiesCountEl.textContent = '0';
+      }
+
+      if (selectedCity) {
+        const visibleLocations = locations.filter((loc) => {
+          const c = getCityFromLocation(loc);
+          const cid = getId(c);
+          return cid && getId(selectedCity) && String(cid) === String(getId(selectedCity));
+        });
+        locationsCountEl.textContent = visibleLocations.length;
+        
+        // Show global empty state if no locations found
+        globalEmptyState.classList.toggle('global-hidden', visibleLocations.length > 0);
+      } else {
+        locationsCountEl.textContent = '0';
+        globalEmptyState.classList.add('global-hidden');
+      }
+    }
+
+    function createItemElement(item, isActive, onClick, level) {
+      const itemEl = document.createElement('div');
+      itemEl.className = `location-item ${isActive ? 'active' : ''}`;
+      itemEl.dataset.level = level;
+      
+      const textEl = document.createElement('span');
+      textEl.className = 'item-text';
+      textEl.textContent = getName(item);
+      
+      const arrowEl = document.createElement('span');
+      arrowEl.className = 'item-arrow';
+      arrowEl.innerHTML = '→';
+      
+      itemEl.appendChild(textEl);
+      if (level !== 'locations') {
+        itemEl.appendChild(arrowEl);
+      }
+      
+      if (onClick) {
+        itemEl.style.cursor = 'pointer';
+        itemEl.addEventListener('click', () => {
+          // Add to history before making new selection
+          selectionHistory.push({
+            country: selectedCountry,
+            state: selectedState,
+            city: selectedCity
+          });
+          onClick(item);
+        });
+        
+        itemEl.addEventListener('mouseenter', () => {
+          if (!isActive) {
+            itemEl.classList.add('hover');
+          }
+        });
+        
+        itemEl.addEventListener('mouseleave', () => {
+          itemEl.classList.remove('hover');
+        });
+      }
+      
+      return itemEl;
+    }
+
+    function renderItems(container, items, activeItem, onClick, level) {
+      if (!container) return;
+      
+      container.innerHTML = '';
+      
+      if (!items || items.length === 0) {
+        const emptyEl = document.createElement('div');
+        emptyEl.className = 'empty-state';
+        emptyEl.innerHTML = `
+          <div class="empty-icon">📭</div>
+          <div class="empty-text">No ${level} available</div>
+        `;
+        container.appendChild(emptyEl);
+        return;
+      }
+      
+      const activeId = activeItem ? getId(activeItem) : null;
+      
+      items.forEach(item => {
+        const isActive = activeId && getId(item) && String(getId(item)) === String(activeId);
+        const itemEl = createItemElement(item, isActive, onClick, level);
+        container.appendChild(itemEl);
+      });
+    }
+
+    function rerender() {
+      updateBreadcrumb();
+      updateSelectionSummary();
+      updateQuickActions();
+      updateSectionVisibility();
+      updateCounts();
+
+      renderItems(countryListEl, countries, selectedCountry, handleCountryClick, 'countries');
+
+      if (selectedCountry) {
+        const visibleStates = states.filter((s) => {
+          const c = getCountryFromState(s);
+          const cid = getId(c);
+          return cid && getId(selectedCountry) && String(cid) === String(getId(selectedCountry));
+        });
+        renderItems(stateListEl, visibleStates, selectedState, handleStateClick, 'states');
+      }
+
+      if (selectedState) {
+        const visibleCities = cities.filter((c) => {
+          const s = getStateFromCity(c);
+          const sid = getId(s);
+          return sid && getId(selectedState) && String(sid) === String(getId(selectedState));
+        });
+        renderItems(cityListEl, visibleCities, selectedCity, handleCityClick, 'cities');
+      }
+
+      if (selectedCity) {
+        const visibleLocations = locations.filter((loc) => {
+          const c = getCityFromLocation(loc);
+          const cid = getId(c);
+          return cid && getId(selectedCity) && String(cid) === String(getId(selectedCity));
+        });
+        renderItems(locationListEl, visibleLocations, null, null, 'locations');
+      }
+    }
+
+    function handleCountryClick(country) {
+      selectedCountry = country;
+      selectedState = null;
+      selectedCity = null;
+      rerender();
+    }
+
+    function handleStateClick(state) {
+      selectedState = state;
+      selectedCity = null;
+      rerender();
+    }
+
+    function handleCityClick(city) {
+      selectedCity = city;
+      rerender();
+    }
+
+    // Event Listeners for buttons
+    clearAllBtn.addEventListener('click', () => {
+      selectedCountry = null;
+      selectedState = null;
+      selectedCity = null;
+      selectionHistory = [];
+      rerender();
+    });
+
+    backBtn.addEventListener('click', () => {
+      if (selectionHistory.length > 0) {
+        const previousState = selectionHistory.pop();
+        selectedCountry = previousState.country;
+        selectedState = previousState.state;
+        selectedCity = previousState.city;
+        rerender();
+      }
+    });
+
+    retryBtn.addEventListener('click', initMarketPage);
+
+    async function initMarketPage() {
+      try {
+        const [countriesData, statesData, citiesData, locationsData] = await Promise.all([
+          fetchJson(API.countries),
+          fetchJson(API.states),
+          fetchJson(API.cities),
+          fetchJson(API.locations),
+        ]);
+
+        countries = countriesData || [];
+        states = statesData || [];
+        cities = citiesData || [];
+        locations = locationsData || [];
+
+        rerender();
+      } catch (error) {
+        console.error('Error initializing market page:', error);
+      }
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initMarketPage);
+    } else {
+      initMarketPage();
+    }
+  </script>
+
+  <!-- ================== Enhanced User-Friendly Styles ================== -->
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+      --primary-light: #dbeafe;
+      --primary-lighter: #eff6ff;
+      --secondary: #8b5cf6;
+      --background: #f8fafc;
+      --surface: #ffffff;
+      --text-primary: #1f2937;
+      --text-secondary: #6b7280;
+      --text-muted: #9ca3af;
+      --border: #e5e7eb;
+      --border-light: #f3f4f6;
+      --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --radius: 12px;
+      --radius-lg: 16px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.5;
+    }
+
+    .market-page {
+      min-height: 100vh;
+      background: var(--background);
+    }
+
+    /* Header */
+    .page-header {
+      background: linear-gradient(135deg, var(--surface) 0%, var(--background) 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 2.5rem 2rem;
+    }
+
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .page-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--text-primary) 0%, var(--primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .page-subtitle {
+      font-size: 1.125rem;
+      color: var(--text-secondary);
+      font-weight: 400;
+    }
+
+    /* Breadcrumb */
+    .breadcrumb-container {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+    }
+
+    .breadcrumb {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .breadcrumb-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--background);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: none;
+    }
+
+    .breadcrumb-item:not(.active):hover {
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    .breadcrumb-item.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .breadcrumb-connector {
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .breadcrumb-icon {
+      font-size: 1rem;
+    }
+
+    /* Main Container */
+    .main-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* Selection Summary */
+    .selection-summary {
+      background: var(--primary-lighter);
+      border: 1px solid var(--primary-light);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      display: none;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .selection-summary.has-selection {
+      display: flex;
+      animation: slideDown 0.3s ease;
+    }
+
+    .summary-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: white;
+      border-radius: 8px;
+      border: 1px solid var(--primary-light);
+    }
+
+    .summary-label {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .summary-value {
+      font-size: 0.875rem;
+      color: var(--primary-dark);
+      font-weight: 600;
+    }
+
+    /* Quick Actions */
+    .quick-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: flex-end;
+    }
+
+    .action-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .action-btn:hover:not(:disabled) {
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      border-color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    .action-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .action-icon {
+      font-size: 1rem;
+    }
+
+    /* Category Sections */
+    .category-section {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .category-section:hover {
+      box-shadow: var(--shadow-md);
+    }
+
+    .category-section.hidden {
+      display: none;
+    }
+
+    /* Section Header */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1.5rem 2rem;
+      background: linear-gradient(135deg, var(--surface) 0%, var(--border-light) 100%);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-icon {
+      font-size: 1.5rem;
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--primary-light);
+      border-radius: 50%;
+    }
+
+    .header-text {
+      flex: 1;
+    }
+
+    .header-text h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.25rem;
+    }
+
+    .header-text p {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    .header-stats {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .count-badge {
+      background: var(--primary);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .stat-text {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    /* Items Grid */
+    .items-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+      padding: 2rem;
+    }
+
+    /* Enhanced Location Items */
+    .location-item {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+      min-height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: between;
+    }
+
+    .location-item::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.08), transparent);
+      transition: left 0.6s ease;
+    }
+
+    .location-item:hover::before {
+      left: 100%;
+    }
+
+    /* Hover State */
+    .location-item.hover {
+      border-color: var(--primary);
+      background: var(--primary-lighter);
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .location-item.hover .item-text {
+      color: var(--primary-dark);
+    }
+
+    .location-item.hover .item-arrow {
+      transform: translateX(3px);
+      color: var(--primary);
+    }
+
+    /* Active State */
+    .location-item.active {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      border-color: var(--primary-dark);
+      color: white;
+      transform: translateY(-3px);
+      box-shadow: 0 12px 30px rgba(59, 130, 246, 0.4);
+    }
+
+    .location-item.active .item-text {
+      color: white;
+      font-weight: 600;
+    }
+
+    .location-item.active .item-arrow {
+      color: white;
+      transform: translateX(3px);
+    }
+
+    .location-item.active::after {
+      content: '✓';
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(255, 255, 255, 0.2);
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.875rem;
+      font-weight: bold;
+    }
+
+    .item-text {
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      transition: all 0.3s ease;
+      z-index: 2;
+      position: relative;
+      flex: 1;
+    }
+
+    .item-arrow {
+      color: var(--text-muted);
+      transition: all 0.3s ease;
+      font-weight: 600;
+    }
+
+    /* Loading State */
+    .loading-section {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-muted);
+    }
+
+    .loading-section.hidden {
+      display: none;
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--border);
+      border-top: 4px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
+    }
+
+    /* Empty States */
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 3rem 2rem;
+      color: var(--text-muted);
+    }
+
+    .empty-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+
+    .empty-text {
+      font-size: 1rem;
+      font-style: italic;
+    }
+
+    .global-empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      border: 2px dashed var(--border);
+      margin: 2rem 0;
+    }
+
+    .global-empty-state.global-hidden {
+      display: none;
+    }
+
+    .global-empty-state h3 {
+      font-size: 1.5rem;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .global-empty-state p {
+      color: var(--text-secondary);
+      margin-bottom: 1.5rem;
+    }
+
+    .retry-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .retry-btn:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    /* Animations */
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1024px) {
+      .items-grid {
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        padding: 1.5rem;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .page-header {
+        padding: 2rem 1rem;
+      }
+
+      .page-title {
+        font-size: 2rem;
+      }
+
+      .main-container {
+        padding: 1rem;
+        gap: 1.5rem;
+      }
+
+      .breadcrumb-container {
+        padding: 1rem;
+      }
+
+      .section-header {
+        padding: 1.25rem 1.5rem;
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+      }
+
+      .header-stats {
+        justify-content: center;
+      }
+
+      .header-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1.25rem;
+      }
+
+      .header-text h2 {
+        font-size: 1.25rem;
+      }
+
+      .items-grid {
+        grid-template-columns: 1fr;
+        padding: 1.25rem;
+        gap: 0.75rem;
+      }
+
+      .location-item {
+        padding: 1.25rem;
+        min-height: 70px;
+      }
+
+      .quick-actions {
+        justify-content: center;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .page-header {
+        padding: 1.5rem 1rem;
+      }
+
+      .page-title {
+        font-size: 1.75rem;
+      }
+
+      .page-subtitle {
+        font-size: 1rem;
+      }
+
+      .breadcrumb {
+        justify-content: center;
+      }
+
+      .selection-summary {
+        flex-direction: column;
+      }
+
+      .location-item {
+        padding: 1rem;
+        min-height: 60px;
+      }
+
+      .item-text {
+        font-size: 1rem;
+      }
+    }
+  </style>
+</LandingLayout>

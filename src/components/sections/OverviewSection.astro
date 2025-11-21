@@ -1,0 +1,184 @@
+---
+/* Static-headed, slug-aware Overview (no CTA, hoverable stat cards) */
+export interface Props {
+  currentSlug?: string | null;
+  seoApi?: string;
+  productApi?: string;
+}
+const { currentSlug = null, seoApi, productApi } = Astro.props;
+
+/* ===== Endpoints & headers ===== */
+const RAW_BASE = (import.meta.env.PUBLIC_API_BASE_URL ?? "https://test.amrita-fashions.com/landing").replace(/\/+$/,'');
+const SEO_URL = (seoApi ?? `${RAW_BASE}/seo`).replace(/\/+$/,'');
+const PRODUCT_URL = (productApi ?? `${RAW_BASE}/product`).replace(/\/+$/,'');
+
+const API_KEY = import.meta.env.PUBLIC_API_KEY ?? "";
+const ADMIN_EMAIL = import.meta.env.PUBLIC_ADMIN_EMAIL ?? "";
+const API_KEY_HEADER = import.meta.env.PUBLIC_API_KEY_HEADER ?? "x-api-key";
+const ADMIN_EMAIL_HEADER = import.meta.env.PUBLIC_ADMIN_EMAIL_HEADER ?? "x-admin-email";
+const headers: Record<string, string> = { Accept: "application/json" };
+if (API_KEY) headers[API_KEY_HEADER] = API_KEY;
+if (ADMIN_EMAIL) headers[ADMIN_EMAIL_HEADER] = ADMIN_EMAIL;
+
+/* ===== Helpers ===== */
+const safe = (v:any)=> (v==null ? "" : String(v));
+const norm = (s:any)=> safe(s).trim().toLowerCase();
+const toId = (v:any)=> typeof v==="string" ? v.trim() : (v && v._id ? String(v._id).trim() : "");
+const pickHtml = (o:any)=>{
+  if(!o) return "";
+  const c = [
+    o.productlocationdescription1, o.productlocationdescription2,
+    o.description_html, o.productdescription, o.description1, o.description2, o.description3
+  ];
+  for(const x of c){ if(typeof x==="string" && x.trim()) return x.trim(); }
+  return "";
+};
+const cleanHtml = (s:string)=> s.replace(/^\s*\.\s*$/gm,"");
+async function fetchJson(url:string){ try{ const r=await fetch(url,{headers}); if(!r.ok) return null; return await r.json(); }catch{ return null; } }
+
+/* ===== Fetch ===== */
+const [seoJson, prodJson] = await Promise.all([ fetchJson(SEO_URL), fetchJson(PRODUCT_URL) ]);
+const seos:any[]  = Array.isArray(seoJson?.data) ? seoJson.data : (Array.isArray(seoJson) ? seoJson : []);
+const prods:any[] = Array.isArray(prodJson?.data) ? prodJson.data : (Array.isArray(prodJson) ? prodJson : []);
+
+function pickSeo(){
+  if(!seos.length) return null;
+  if(currentSlug){
+    const bySlug = seos.find((s)=> norm(s?.slug)===norm(currentSlug));
+    if(bySlug) return bySlug;
+  }
+  return seos.find((s)=> s?.landingPageProduct) ?? seos[0] ?? null;
+}
+const seo = pickSeo();
+
+function pickProduct(){
+  if(!prods.length) return null;
+  const pid = toId(seo?.product);
+  if(pid){ const byId = prods.find((p)=> toId(p?._id)===pid); if(byId) return byId; }
+  if(seo?.slug){ const bySlug = prods.find((p)=> norm(p?.slug)===norm(seo.slug)); if(bySlug) return bySlug; }
+  return prods.find((p)=> p?.landingPageProduct) ?? prods[0] ?? null;
+}
+const product = pickProduct();
+
+/* ===== Static heading/tagline ===== */
+const STATIC_HEADING = "Leading B2B Fabric Supplier Worldwide";
+const STATIC_TAGLINE = "ISO 9001 Certified • 500+ Global Partners • Ships to 50+ Countries";
+
+/* ===== Dynamic body + image ===== */
+const p1 = cleanHtml(pickHtml(seo) || pickHtml(product) || "");
+const p2 = cleanHtml(seo?.productlocationdescription2 || product?.productlocationdescription2 || "");
+const image = product?.image2 || product?.image1 || product?.img || "";
+const imageAlt = seo?.title || product?.name || "Fabric image";
+---
+
+<section class="ov" id="aboutus">
+  <div class="wrap">
+    <header class="head">
+      <h2 class="title">{STATIC_HEADING}</h2>
+      <p class="tag">{STATIC_TAGLINE}</p>
+      <i class="bar" aria-hidden="true"></i>
+    </header>
+
+    <!-- ORDER CHANGED: image BEFORE copy so float/shape can wrap following text -->
+    <div class="content">
+      {image && (
+        <figure class="media wrap-shape" aria-label="Product image">
+          <img
+            src={image}
+            alt={imageAlt}
+            title={imageAlt}
+            loading="lazy"
+            decoding="async"
+            width="1024"
+            height="768"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 52vw, 640px"
+          />
+        </figure>
+      )}
+
+      <div class="copy">
+        {p1 && <div class="txt" set:html={p1} />}
+        {p2 && <div class="txt mt" set:html={p2} />}
+
+        <div class="stats" role="list">
+          <div class="stat" role="listitem" aria-label="500 plus global partners">
+            <span class="num">500+</span>
+            <span class="lbl">Global Partners</span>
+          </div>
+          <div class="stat" role="listitem" aria-label="50 plus countries served">
+            <span class="num">50+</span>
+            <span class="lbl">Countries Served</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    :root{ --age-blue:#2C4C97; --age-gold:#D6A74B; --age-navy:#112338 }
+    .ov{position:relative;background:#f8fafc;padding:3.25rem 0}
+    @media(min-width:640px){.ov{padding:4.75rem 0}}
+    .wrap{max-width:1180px;margin:0 auto;padding:0 14px}
+
+    .head{text-align:center;margin-bottom:1.9rem}
+    .title{margin:0 0 .6rem;line-height:1.15;font-weight:800;color:#0f172a;
+           font-size:clamp(1.9rem,3.2vw,2.9rem)}
+    .tag{margin:0 0 .9rem;color:#475569;font-size:clamp(.98rem,1.2vw,1.05rem);letter-spacing:.1px}
+    .bar{display:block;width:110px;height:4px;margin:.25rem auto 0;background:linear-gradient(90deg,var(--age-blue),#10b981);border-radius:999px}
+
+    /* Mobile/tablet: stacked layout */
+    .content{display:grid;gap:1.6rem}
+    .media{
+      position:relative;border-radius:22px;overflow:hidden;background:#fff;
+      box-shadow:0 10px 32px rgba(15,34,53,.12)
+    }
+    .media img{display:block;width:100%;height:100%;object-fit:contain;aspect-ratio:4/3}
+
+    .copy{position:relative}
+    .txt{color:#334155;line-height:1.8;font-size:1.06rem}
+    .txt :where(h1,h2,h3){margin:.25rem 0 .5rem;line-height:1.25;font-size:1.15rem;font-weight:700;color:#0f172a}
+    .txt :where(p,ul,ol){margin:.55rem 0}
+    .txt :where(ul){padding-left:1.1rem}
+    .mt{margin-top:1rem}
+
+    /* ===== Stats (hoverable) ===== */
+    .stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin-top:1.4rem}
+    .stat{
+      background:#fff;border:1px solid rgba(17,35,56,.10);border-radius:18px;
+      box-shadow:0 6px 18px rgba(15,34,53,.08);
+      padding:0.5rem 0.5rem;text-align:center;
+      transition:transform .18s ease, box-shadow .25s ease, border-color .25s ease, background-color .25s ease;
+      will-change:transform;
+    }
+    @media (hover:hover){
+      .stat:hover{ transform:translateY(-3px); box-shadow:0 14px 30px rgba(15,34,53,.16); border-color:rgba(44,76,151,.35); background:linear-gradient(0deg,#ffffff, #ffffff) padding-box, radial-gradient(100% 100% at 50% 0, rgba(44,76,151,.18), rgba(214,167,75,.16)) border-box; }
+    }
+    .stat:focus-within{ outline:2px solid rgba(44,76,151,.35); outline-offset:2px }
+    .num{display:block;font-weight:800;font-size:clamp(1.6rem,2.6vw,2rem);color:#0b1324}
+    .lbl{display:block;margin-top:.25rem;color:#5b6b80}
+
+    /* ===== Desktop: switch to float + CSS Shapes for curved wrapping ===== */
+    @media (min-width: 1024px){
+      .content{display:block} /* end the grid; floats need a block formatting context */
+      .wrap-shape{
+        /* Size sets the wrap area; aspect-ratio ensures height for shape calculations */
+        inline-size: clamp(320px, 36vw, 520px);
+        aspect-ratio: 4 / 3;
+        float: right;
+        margin: .25rem 0 1rem 1.6rem; /* space between text and image */
+        /* Choose ONE of these shapes: rounded-rect (default), circle, or ellipse */
+        shape-outside: inset(0 round 24px);
+        /* shape-outside: circle(50% at 50% 50%);     */ /* perfect circle */
+        /* shape-outside: ellipse(55% 45% at 50% 50%); */ /* softer curve */
+        shape-margin: 14px;   /* extra breathing room between text and curve */
+        clip-path: inset(0 round 22px); /* visually match the curve on the element */
+      }
+      .media img{width:100%;height:100%;object-fit:contain}
+      /* Clear the float at the end of the text block so following sections don’t wrap */
+      .copy:after{content:"";display:block;clear:both}
+    }
+
+    /* Progressive enhancement: if CSS Shapes aren’t supported, it gracefully falls
+       back to a regular right float with rectangular wrap. */
+  </style>
+</section>

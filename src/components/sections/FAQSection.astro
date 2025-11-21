@@ -1,0 +1,436 @@
+---
+// src/components/FAQSection.astro
+---
+
+<section id="faq" class="faq-section">
+  <div class="container">
+    <div class="faq-layout">
+      <!-- Left: Intro + CTA -->
+      <div class="faq-intro">
+        <p class="faq-eyebrow">FAQ • Support for your sourcing team</p>
+        <h2 class="faq-title">Clear answers, zero friction.</h2>
+        <p class="faq-text">
+          A quick snapshot of how we handle MOQ, sampling, timelines, and quality
+          so your team can move faster with confidence.
+        </p>
+        <ul class="faq-points">
+          <li>Realistic MOQs for brands & exporters</li>
+          <li>Structured QA + lab testing support</li>
+          <li>Custom fabric development on request</li>
+        </ul>
+
+        <div class="faq-cta-inline">
+          <a href="/contact" class="btn">Talk to a Fabric Specialist</a>
+          <a href="/catalog" class="btn secondary">Browse Fabric Catalog</a>
+        </div>
+      </div>
+
+      <!-- Right: FAQ List -->
+      <div class="faq-list">
+        <!-- FAQ Item 1 -->
+        <div class="faq-item" data-faq-item>
+          <button class="faq-question" type="button" aria-expanded="false">
+            <span>What is your minimum order quantity for bulk fabric orders?</span>
+            <span class="faq-icon-wrap">
+              <svg class="faq-icon" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M3 8H13M8 3V13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          </button>
+          <div class="faq-answer" hidden>
+            <p>
+              It depends on the fabric. Standard qualities usually start from
+              around 500 yards, while some custom or specialty developments can
+              begin at ~300 yards. Share your target and we'll confirm the most
+              practical MOQ.
+            </p>
+          </div>
+        </div>
+
+        <!-- FAQ Item 2 -->
+        <div class="faq-item" data-faq-item>
+          <button class="faq-question" type="button" aria-expanded="false">
+            <span>Do you provide fabric samples before placing bulk orders?</span>
+            <span class="faq-icon-wrap">
+              <svg class="faq-icon" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M3 8H13M8 3V13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          </button>
+          <div class="faq-answer" hidden>
+            <p>
+              Yes. We share curated swatches so your team can check color, feel,
+              and construction. Standard samples are often complimentary; custom
+              developments may be adjusted against your first bulk order.
+            </p>
+          </div>
+        </div>
+
+        <!-- FAQ Item 3 -->
+        <div class="faq-item" data-faq-item>
+          <button class="faq-question" type="button" aria-expanded="false">
+            <span>What are your payment terms for B2B fabric orders?</span>
+            <span class="faq-icon-wrap">
+              <svg class="faq-icon" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M3 8H13M8 3V13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          </button>
+          <div class="faq-answer" hidden>
+            <p>
+              Typically 50% advance and 50% before dispatch for new buyers.
+              Long-term partners may qualify for structured credit terms after
+              review.
+            </p>
+          </div>
+        </div>
+
+        <!-- FAQ Item 4 -->
+        <div class="faq-item" data-faq-item>
+          <button class="faq-question" type="button" aria-expanded="false">
+            <span>How do you ensure consistent quality across large orders?</span>
+            <span class="faq-icon-wrap">
+              <svg class="faq-icon" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M3 8H13M8 3V13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          </button>
+          <div class="faq-answer" hidden>
+            <p>
+              Each lot passes through yarn checks, on-loom inspection, finishing
+              control, and lab tests (shrinkage, GSM, color fastness, etc.).
+              Reports or third-party inspection can be arranged on request.
+            </p>
+          </div>
+        </div>
+
+        <!-- FAQ Item 5 -->
+        <div class="faq-item" data-faq-item>
+          <button class="faq-question" type="button" aria-expanded="false">
+            <span>What is your typical lead time from confirmation to dispatch?</span>
+            <span class="faq-icon-wrap">
+              <svg class="faq-icon" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M3 8H13M8 3V13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          </button>
+          <div class="faq-answer" hidden>
+            <p>
+              Standard repeats: approx. 4–6 weeks. New developments or complex
+              finishes: 6–8 weeks. Faster slots can be discussed for priority
+              programs.
+            </p>
+          </div>
+        </div>
+
+        <!-- FAQ Item 6 -->
+        <div class="faq-item" data-faq-item>
+          <button class="faq-question" type="button" aria-expanded="false">
+            <span>Do you support custom fabric development?</span>
+            <span class="faq-icon-wrap">
+              <svg class="faq-icon" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M3 8H13M8 3V13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          </button>
+          <div class="faq-answer" hidden>
+            <p>
+              Yes. We work with your tech pack or moodboard on count, GSM,
+              weave/knit, finish, and performance. Our team suggests the most
+              production-friendly options to hit your cost and quality targets.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .faq-section {
+    padding: 80px 0;
+    background: var(--tp-grey-1);
+  }
+
+  .faq-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    gap: 60px;
+    align-items: flex-start;
+  }
+
+  /* Intro column */
+  .faq-intro {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .faq-eyebrow {
+    font-size: 0.8rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--tp-theme-primary);
+    font-weight: 600;
+    display: inline-block;
+    padding: 6px 12px;
+    background: rgba(44, 76, 151, 0.08);
+    border-radius: 20px;
+    width: fit-content;
+    margin: 0;
+  }
+
+  .faq-title {
+    font-size: clamp(1.9rem, 4vw, 2.2rem);
+    line-height: 1.2;
+    color: var(--tp-text-1);
+    margin: 0;
+    font-family: var(--tp-ff-display);
+    font-weight: 700;
+  }
+
+  .faq-text {
+    margin: 0;
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: var(--tp-text-2);
+    max-width: 90%;
+  }
+
+  .faq-points {
+    margin: 8px 0 0;
+    padding-left: 0;
+    display: grid;
+    gap: 12px;
+    font-size: 0.95rem;
+    color: var(--tp-text-2);
+  }
+
+  .faq-points li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    list-style: none;
+  }
+
+  .faq-points li::before {
+    content: "";
+    display: block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--tp-theme-secondary);
+  }
+
+  .faq-cta-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 20px;
+  }
+
+  .faq-cta-inline .btn {
+    padding: 12px 24px;
+    font-size: 0.95rem;
+    border-radius: 12px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+
+  .faq-cta-inline .btn.secondary {
+    background: transparent;
+    color: var(--tp-theme-primary);
+    border: 1.5px solid rgba(44, 76, 151, 0.3);
+  }
+
+  .faq-cta-inline .btn.secondary:hover {
+    border-color: var(--tp-theme-primary);
+    background: rgba(44, 76, 151, 0.05);
+    transform: translateY(-1px);
+  }
+
+  /* FAQ list column */
+  .faq-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .faq-item {
+    border-radius: var(--radius-md);
+    background: var(--tp-common-white);
+    border: 1px solid var(--tp-grey-2);
+    box-shadow: var(--shadow-1);
+    padding: 0;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .faq-item::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 0;
+    background: var(--tp-theme-primary);
+    transition: height 0.3s ease;
+  }
+
+  .faq-item:hover {
+    box-shadow: 0 8px 24px rgba(17, 35, 56, 0.12);
+    border-color: rgba(44, 76, 151, 0.2);
+  }
+
+  .faq-item.active {
+    border-color: var(--tp-theme-primary);
+    box-shadow: 0 8px 28px rgba(44, 76, 151, 0.15);
+  }
+
+  .faq-item.active::before {
+    height: 100%;
+  }
+
+  .faq-question {
+    width: 100%;
+    padding: 20px 24px 20px 28px;
+    cursor: pointer;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--tp-text-1);
+    background: none;
+    border: none;
+    text-align: left;
+    font-family: inherit;
+    transition: all 0.3s ease;
+  }
+
+  .faq-question:hover {
+    color: var(--tp-theme-primary);
+  }
+
+  .faq-question span:first-child {
+    flex: 1;
+  }
+
+  .faq-icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: rgba(44, 76, 151, 0.08);
+    color: var(--tp-theme-primary);
+    flex-shrink: 0;
+    transition: all 0.3s ease;
+  }
+
+  .faq-item.active .faq-icon-wrap {
+    background: var(--tp-theme-primary);
+    color: var(--tp-common-white);
+  }
+
+  .faq-icon {
+    transition: transform 0.3s ease;
+  }
+
+  .faq-item.active .faq-icon {
+    transform: rotate(45deg);
+  }
+
+  .faq-answer {
+    padding: 0 28px;
+    max-height: 0;
+    overflow: hidden;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: var(--tp-text-2);
+    transition: all 0.4s ease;
+  }
+
+  .faq-item.active .faq-answer {
+    padding: 0 28px 24px;
+    max-height: 500px;
+  }
+
+  .faq-answer p {
+    margin: 0;
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .faq-layout {
+      grid-template-columns: 1fr;
+      gap: 40px;
+    }
+    .faq-section {
+      padding: 60px 0;
+    }
+    .faq-text {
+      max-width: 100%;
+    }
+  }
+
+  @media (max-width: 540px) {
+    .faq-section {
+      padding: 40px 0;
+    }
+    .faq-question {
+      padding: 16px 20px 16px 24px;
+      font-size: 1rem;
+    }
+    .faq-item.active .faq-answer {
+      padding: 0 24px 20px;
+    }
+    .faq-cta-inline {
+      flex-direction: column;
+    }
+    .faq-cta-inline .btn {
+      width: 100%;
+      text-align: center;
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const faqItems = document.querySelectorAll('[data-faq-item]');
+    
+    faqItems.forEach(item => {
+      const question = item.querySelector('.faq-question');
+      const answer = item.querySelector('.faq-answer');
+      
+      question.addEventListener('click', () => {
+        const isActive = item.classList.contains('active');
+        
+        // Close all FAQ items
+        faqItems.forEach(otherItem => {
+          if (otherItem !== item) {
+            otherItem.classList.remove('active');
+            const otherAnswer = otherItem.querySelector('.faq-answer');
+            const otherButton = otherItem.querySelector('.faq-question');
+            otherAnswer.hidden = true;
+            otherButton.setAttribute('aria-expanded', 'false');
+          }
+        });
+        
+        // Toggle current item
+        if (!isActive) {
+          item.classList.add('active');
+          answer.hidden = false;
+          question.setAttribute('aria-expanded', 'true');
+        } else {
+          item.classList.remove('active');
+          answer.hidden = true;
+          question.setAttribute('aria-expanded', 'false');
+        }
+      });
+    });
+  });
+</script>

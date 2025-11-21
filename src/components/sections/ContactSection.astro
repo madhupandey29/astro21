@@ -1,0 +1,830 @@
+---
+export const prerender = false;
+
+interface Props {
+  officeApi?: string;
+  heading?: string;
+  subheading?: string;
+}
+const {
+  officeApi = "https://test.amrita-fashions.com/landing/officeinformation",
+  heading = "Get Your Free Sample Today",
+  subheading = "Tell us what you need — we'll get back within 1 business day."
+} = Astro.props as Props;
+
+/* Fetch office info (SSR) */
+let office: any = null;
+try {
+  const res = await fetch(officeApi, { headers: { Accept: "application/json" } });
+  if (res.ok) {
+    const j = await res.json();
+    office = j?.data?.[0] ?? null;
+  }
+} catch {}
+
+const companyName = office?.companyName ?? "Amrita Global Enterprises";
+const phone1Raw   = (office?.companyPhone1 ?? "").toString();
+const phone1      = phone1Raw.replace(/[\u200e\u200f\u202a-\u202e]/g, "");
+const phone2      = (office?.companyPhone2 ?? "").toString();
+const email       = office?.companyEmail ?? "";
+const address     = office?.companyAddress ?? "";
+const logoUrl     = office?.companyLogoUrl ?? "";
+const languages   = Array.isArray(office?.companyLanguages) ? office.companyLanguages : [];
+const hours       = office?.companyHours || "";
+const gmapsHref   = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` : null;
+
+const social = {
+  facebook: office?.facebook,
+  instagram: office?.instagram,
+  linkedin: office?.linkedin,
+  twitter: office?.twitter,
+  youtube: office?.youtube,
+};
+
+/* Client submit target & headers via PUBLIC env */
+const RAW_BASE = (import.meta.env.PUBLIC_API_BASE_URL ?? "https://test.amrita-fashions.com/landing").replace(/\/+$/,'');
+const CONTACT_URL = `${RAW_BASE}/contacts`;
+const API_KEY = import.meta.env.PUBLIC_API_KEY ?? "";
+const ADMIN_EMAIL = import.meta.env.PUBLIC_ADMIN_EMAIL ?? "";
+const API_KEY_HEADER = import.meta.env.PUBLIC_API_KEY_HEADER ?? "x-api-key";
+const ADMIN_EMAIL_HEADER = import.meta.env.PUBLIC_ADMIN_EMAIL_HEADER ?? "x-admin-email";
+---
+
+<section id="contact" class="contact-wrap age-testi full-bleed compact">
+  <div class="container">
+    <!-- Decorative elements -->
+    <div class="floating-shapes">
+      <div class="shape shape-1"></div>
+      <div class="shape shape-2"></div>
+      <div class="shape shape-3"></div>
+    </div>
+
+    <header class="head">
+      <div class="header-decoration">
+        <div class="decoration-line"></div>
+        <div class="decoration-dot"></div>
+        <div class="decoration-line"></div>
+      </div>
+      <h2 class="h2">{heading}</h2>
+      <p class="lead">{subheading}</p>
+    </header>
+
+    <div class="grid">
+      <!-- LEFT: Multistep form -->
+      <div class="card form-card">
+        <div class="card-header">
+          <h3 class="card-title">Request Quote</h3>
+          <div class="progress-track">
+            <div class="steps" aria-label="Form steps">
+              <div class="step-item">
+                <div class="step-dot is-active" data-step-dot="1">1</div>
+                <span class="step-label">Company</span>
+              </div>
+              <div class="step-connector"></div>
+              <div class="step-item">
+                <div class="step-dot" data-step-dot="2">2</div>
+                <span class="step-label">Business</span>
+              </div>
+              <div class="step-connector"></div>
+              <div class="step-item">
+                <div class="step-dot" data-step-dot="3">3</div>
+                <span class="step-label">Requirements</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <form
+          id="leadForm"
+          class="form"
+          novalidate
+          data-submit-url={CONTACT_URL}
+          data-api-key={API_KEY}
+          data-admin-email={ADMIN_EMAIL}
+          data-api-key-header={API_KEY_HEADER}
+          data-admin-email-header={ADMIN_EMAIL_HEADER}
+        >
+          <!-- STEP 1 -->
+          <fieldset class="step" data-step="1" aria-live="polite">
+            <legend class="step-legend">Company Information</legend>
+        <div class="form-grid">
+  <div class="field">
+    <label for="companyName" class="field-label">
+      <span class="label-text">Company Name</span>
+      <span class="required" aria-hidden="true">*</span>
+    </label>
+    <input
+      id="companyName"
+      name="companyName"
+      class="input-field"
+      type="text"
+      autocomplete="organization"
+      placeholder="Enter company name"
+    />
+  </div>
+
+  <div class="field">
+    <label for="contactPerson" class="field-label">
+      <span class="label-text">Contact Person</span>
+      <span class="required" aria-hidden="true">*</span>
+    </label>
+    <input
+      id="contactPerson"
+      name="contactPerson"
+      class="input-field"
+      type="text"
+      autocomplete="name"
+      placeholder="Full name"
+    />
+  </div>
+
+  <div class="field">
+    <label for="email" class="field-label">
+      <span class="label-text">Email Address</span>
+      <span class="required" aria-hidden="true">*</span>
+    </label>
+    <input
+      id="email"
+      name="email"
+      class="input-field"
+      type="email"
+      autocomplete="email"
+      placeholder="your@company.com"
+    />
+  </div>
+
+  <div class="field">
+    <label for="phone" class="field-label">
+      <span class="label-text">Phone Number</span>
+      <span class="required" aria-hidden="true">*</span>
+    </label>
+    <input
+      id="phone"
+      name="phone"
+      class="input-field"
+      type="tel"
+      inputmode="tel"
+      autocomplete="tel"
+      placeholder="+1 (555) 000-0000"
+    />
+  </div>
+</div>
+
+            <div class="form-actions">
+              <button type="button" class="btn btn-next" data-next>
+                <span>Continue</span>
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          </fieldset>
+
+          <!-- STEP 2 -->
+          <fieldset class="step" data-step="2" hidden aria-hidden="true">
+            <legend class="step-legend">Business Details</legend>
+            <div class="form-grid">
+              <div class="field">
+                <label for="businessType" class="field-label">
+                  <span class="label-text">Business Type</span>
+                  <span class="required">*</span>
+                </label>
+                <select id="businessType" name="businessType" class="input-field" required>
+                  <option value="">Select business type</option>
+                  <option value="garment-manufacturer">Garment Manufacturer</option>
+                  <option value="clothing-retailer">Clothing Retailer</option>
+                  <option value="fabric-importer">Fabric Importer</option>
+                  <option value="trading-company">Trading Company</option>
+                  <option value="export-house">Export House / Buying House</option>
+                  <option value="designer">Fashion Designer / Boutique</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="annualVolume" class="field-label">
+                  <span class="label-text">Annual Fabric Volume</span>
+                  <span class="required">*</span>
+                </label>
+                <select id="annualVolume" name="annualVolume" class="input-field" required>
+                  <option value="">Select volume range</option>
+                  <option value="under-10k">Under 10,000 m</option>
+                  <option value="10k-50k">10,000–50,000 m</option>
+                  <option value="50k-100k">50,000–100,000 m</option>
+                  <option value="100k-500k">100,000–500,000 m</option>
+                  <option value="over-500k">500,000+ m</option>
+                </select>
+              </div>
+              <div class="field full-width">
+                <label for="primaryMarkets" class="field-label">
+                  <span class="label-text">Primary Markets</span>
+                </label>
+                <input id="primaryMarkets" name="primaryMarkets" class="input-field" placeholder="e.g., India, EU, Middle East, USA" />
+              </div>
+              <div class="field full-width">
+                <label class="field-label">Fabric Types of Interest</label>
+                <div class="chips-grid">
+                  {["Cotton", "Silk", "Polyester", "Blends", "Linen", "Wool", "Technical", "Denim", "Knit", "Woven"].map((t) => (
+                    <label class="chip">
+                      <input type="checkbox" name="fabricTypes" value={t} />
+                      <span class="chip-label">{t}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div class="form-actions between">
+              <button type="button" class="btn btn-prev" data-prev>
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Back</span>
+              </button>
+              <button type="button" class="btn btn-next" data-next>
+                <span>Continue</span>
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          </fieldset>
+
+          <!-- STEP 3 -->
+          <fieldset class="step" data-step="3" hidden aria-hidden="true">
+            <legend class="step-legend">Requirements & Timeline</legend>
+            <div class="form-grid">
+              <div class="field full-width">
+                <label for="specifications" class="field-label">
+                  <span class="label-text">Specifications & Requirements</span>
+                </label>
+                <textarea id="specifications" name="specifications" rows="4" class="input-field textarea-field" placeholder="Weight, width, composition, finish, shades, target price, certifications needed, etc."></textarea>
+              </div>
+              <div class="field">
+                <label for="timeline" class="field-label">
+                  <span class="label-text">Timeline</span>
+                  <span class="required">*</span>
+                </label>
+                <select id="timeline" name="timeline" class="input-field" required>
+                  <option value="">Select timeline</option>
+                  <option value="immediate">Within 1 month</option>
+                  <option value="1-3-months">1–3 months</option>
+                  <option value="3-6-months">3–6 months</option>
+                  <option value="6-months-plus">6+ months</option>
+                </select>
+              </div>
+              <div class="field full-width">
+                <label for="message" class="field-label">
+                  <span class="label-text">Additional Message</span>
+                </label>
+                <textarea id="message" name="message" rows="3" class="input-field textarea-field" placeholder="Any additional requirements or questions..."></textarea>
+              </div>
+            </div>
+            <div class="form-actions between">
+              <button type="button" class="btn btn-prev" data-prev>
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Back</span>
+              </button>
+              <button class="btn btn-primary" type="submit">
+                <span>Submit Request</span>
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          </fieldset>
+
+          <!-- Submission messages -->
+          <p class="success-note" hidden>
+            ✅ Thank you! Your request has been submitted. We'll contact you shortly.
+          </p>
+          <p class="error-note" hidden>
+            ⚠️ Sorry, something went wrong. Please try again.
+          </p>
+        </form>
+      </div>
+
+      <!-- RIGHT: Enhanced Office Info -->
+      <aside class="card info-card">
+        <!-- Fabric Texture Background -->
+        <div class="fabric-texture-bg">
+          <div class="texture-overlay"></div>
+        </div>
+        
+        <div class="card-content">
+          <!-- Company Header -->
+          <div class="company-header">
+            {logoUrl && <img class="company-logo" src={logoUrl} alt={companyName} loading="lazy" />}
+            <div class="company-info">
+              <h3 class="company-name">{companyName}</h3>
+              <p class="company-tagline">Premium Fabric Solutions</p>
+            </div>
+          </div>
+
+          <!-- Why Choose Us Section -->
+          <div class="features-section">
+            <h4 class="section-title">Why Choose Us?</h4>
+            <div class="features-grid">
+              <div class="feature-card">
+                <div class="feature-icon-wrapper">
+                  <div class="feature-icon quality"></div>
+                </div>
+                <div class="feature-content">
+                  <h5 class="feature-title">Quality Certified</h5>
+                  <p class="feature-description">ISO certified standards with rigorous quality control processes</p>
+                </div>
+              </div>
+              <div class="feature-card">
+                <div class="feature-icon-wrapper">
+                  <div class="feature-icon pricing"></div>
+                </div>
+                <div class="feature-content">
+                  <h5 class="feature-title">Competitive Pricing</h5>
+                  <p class="feature-description">Best market prices with attractive volume-based discounts</p>
+                </div>
+              </div>
+              <div class="feature-card">
+                <div class="feature-icon-wrapper">
+                  <div class="feature-icon support"></div>
+                </div>
+                <div class="feature-content">
+                  <h5 class="feature-title">24/7 Support</h5>
+                  <p class="feature-description">Dedicated account managers and round-the-clock technical support</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- You can append contact info/trust badges here if needed -->
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Success Popup -->
+  <div id="successPopup" class="success-popup">
+    <div class="popup-content">
+      <div class="popup-icon"></div>
+      <h3 class="popup-title">Success!</h3>
+      <p class="popup-message">Your request has been submitted successfully. We'll contact you shortly.</p>
+      <button class="popup-button" id="popupClose">Continue</button>
+    </div>
+  </div>
+
+  <style>
+    :root {
+      --brand-primary: var(--tp-theme-primary, #2C4C97);
+      --brand-secondary: var(--tp-theme-secondary, #D6A74B);
+      --brand-accent: #4A90E2;
+      --success: #10B981;
+      
+      --surface-primary: #ffffff;
+      --surface-secondary: #f8fafc;
+      --surface-tertiary: #f1f5f9;
+      
+      --text-primary: #0F172A;
+      --text-secondary: #475569; /* AA on surface-tertiary */
+      --text-muted: #64748B;
+      
+      --border-light: rgba(15, 34, 53, 0.08);
+      --border-medium: rgba(15, 34, 53, 0.12);
+      
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+    }
+
+    /* Base Styles */
+    .contact-wrap {
+      min-height: 100svh;
+      display: grid;
+      align-items: center;
+      background: 
+        radial-gradient(ellipse at 50% -10%, var(--surface-tertiary) 0%, transparent 70%),
+        linear-gradient(180deg, var(--surface-primary) 0%, var(--surface-secondary) 100%);
+      position: relative;
+      overflow: hidden;
+      /* top | left&right | bottom */
+      padding: clamp(16px, 2.5vw, 32px) 0 clamp(32px, 5vw, 80px);
+    }
+
+    .floating-shapes { position: absolute; inset: 0; pointer-events: none; }
+    .shape { position: absolute; border-radius: 50%; background: linear-gradient(135deg, var(--brand-primary), var(--brand-accent)); opacity: 0.03; animation: float 20s ease-in-out infinite; }
+    .shape-1 { width: 300px; height: 300px; top: 10%; left: 5%; animation-delay: 0s; }
+    .shape-2 { width: 200px; height: 200px; top: 60%; right: 10%; animation-delay: -5s; }
+    .shape-3 { width: 150px; height: 150px; bottom: 20%; left: 15%; animation-delay: -10s; }
+    @keyframes float { 0%, 100% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-20px) rotate(180deg); } }
+
+    .container { width: min(1200px, 92%); margin: 0 auto; position: relative; z-index: 1; }
+
+    /* Header Styles */
+    .head { text-align: center; margin-bottom: clamp(32px, 4vw, 48px); }
+    .header-decoration { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 20px; }
+    .decoration-line { width: 40px; height: 2px; background: linear-gradient(90deg, transparent, var(--brand-primary), transparent); }
+    .decoration-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--brand-secondary); }
+    .h2 { font-size: clamp(32px, 4vw, 48px); font-weight: 700; margin: 0 0 12px; background: linear-gradient(135deg, var(--text-primary), var(--brand-primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .lead { font-size: clamp(16px, 2vw, 18px); color: var(--text-secondary); margin: 0; max-width: 600px; margin-left: auto; margin-right: auto; line-height: 1.6; }
+
+    /* Grid Layout - Equal Columns */
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(24px, 3vw, 32px); align-items: start; }
+    @media (max-width: 968px) { .grid { grid-template-columns: 1fr; gap: 24px; } }
+
+    /* Card Styles */
+    .card { background: var(--surface-primary); border: 1px solid var(--border-light); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); backdrop-filter: blur(10px); position: relative; overflow: hidden; height: fit-content; }
+    .form-card { padding: clamp(20px, 3vw, 32px); }
+    .info-card { padding: 0; background: linear-gradient(135deg, var(--surface-primary) 0%, var(--surface-secondary) 100%); }
+
+    /* Fabric Texture Background for Right Card */
+    .fabric-texture-bg { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(circle at 20% 80%, rgba(44, 76, 151, 0.03) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(214, 167, 75, 0.03) 0%, transparent 50%), linear-gradient(135deg, transparent 0%, rgba(44, 76, 151, 0.02) 100%); opacity: 0.6; }
+    .texture-overlay { position: absolute; inset: 0; background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(44, 76, 151, 0.01) 10px, rgba(44, 76, 151, 0.01) 20px); }
+    .card-content { position: relative; z-index: 1; padding: clamp(20px, 3vw, 32px); }
+
+    /* Company Header */
+    .company-header { display: flex; align-items: center; gap: 16px; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid var(--border-light); }
+    .company-logo { width: 60px; height: 60px; object-fit: contain; border-radius: var(--radius-md); background: var(--surface-primary); padding: 8px; box-shadow: var(--shadow-sm); }
+    .company-info { flex: 1; }
+    .company-name { font-size: 20px; font-weight: 700; margin: 0 0 4px; color: var(--text-primary); }
+    .company-tagline { font-size: 14px; color: var(--brand-primary); margin: 0; font-weight: 500; }
+
+    /* Features Section */
+    .features-section { margin-bottom: 32px; }
+    .section-title { font-size: 18px; font-weight: 600; color: var(--text-primary); margin: 0 0 20px; position: relative; display: inline-block; }
+    .section-title::after { content: ''; position: absolute; bottom: -6px; left: 0; width: 30px; height: 2px; background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary)); border-radius: 2px; }
+    .features-grid { display: grid; gap: 16px; }
+    .feature-card { display: flex; align-items: flex-start; gap: 12px; padding: 16px; background: var(--surface-primary); border-radius: var(--radius-lg); border: 1px solid var(--border-light); transition: all 0.3s ease; }
+    .feature-card:hover { transform: translateY(-2px); border-color: var(--brand-primary); box-shadow: var(--shadow-md); }
+    .feature-icon-wrapper { flex-shrink: 0; }
+    .feature-icon { width: 40px; height: 40px; border-radius: var(--radius-md); position: relative; }
+    .feature-icon::before { content: ""; position: absolute; inset: 8px; border-radius: 8px; background: currentColor; mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat; -webkit-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat; }
+    .feature-icon.quality { color: #4F8CFF; }
+    .feature-icon.shipping { color: #26B89A; }
+    .feature-icon.pricing { color: #A37BFF; }
+    .feature-icon.support { color: var(--brand-secondary); }
+    .feature-content { flex: 1; }
+    .feature-title { font-size: 14px; font-weight: 600; margin: 0 0 4px; color: var(--text-primary); }
+    .feature-description { font-size: 13px; color: var(--text-muted); margin: 0; line-height: 1.4; }
+
+    /* Contact Information */
+    .contact-info-section { margin-bottom: 24px; }
+    .contact-grid { display: grid; gap: 12px; }
+    .contact-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--surface-primary); border-radius: var(--radius-md); border: 1px solid var(--border-light); transition: all 0.2s ease; }
+    .contact-item:hover { border-color: var(--brand-primary); background: var(--surface-secondary); }
+    .contact-icon { width: 36px; height: 36px; border-radius: var(--radius-sm); background: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .contact-icon svg { width: 18px; height: 18px; fill: white; }
+    .contact-details { display: flex; flex-direction: column; gap: 2px; }
+    .contact-label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+    .contact-value { font-size: 14px; font-weight: 600; color: var(--text-primary); text-decoration: none; transition: color 0.2s ease; }
+    .contact-value:hover { color: var(--brand-primary); }
+
+    /* Trust Badges */
+    .trust-badges { display: flex; flex-direction: column; gap: 8px; padding: 16px; background: linear-gradient(135deg, rgba(44, 76, 151, 0.05), rgba(214, 167, 75, 0.05)); border-radius: var(--radius-md); border: 1px solid var(--border-light); }
+    .trust-item { display: flex; align-items: center; gap: 8px; }
+    .trust-icon { width: 20px; height: 20px; border-radius: 50%; background: var(--success); color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
+    .trust-text { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+
+    /* Form Styles (Left Side) */
+    .card-header { margin-bottom: 28px; }
+    .card-title { font-size: 20px; font-weight: 600; color: var(--text-primary); margin: 0 0 20px; }
+
+    /* Progress Tracker */
+    .progress-track {
+      background: var(--surface-tertiary);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      color: var(--text-secondary); /* AA contrast on light bg */
+    }
+    .steps { display: flex; align-items: center; justify-content: space-between; position: relative; }
+    .step-item { display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 1; }
+    .step-dot { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; background: var(--surface-primary); border: 2px solid var(--border-medium); color: var(--text-muted); transition: all 0.3s ease; }
+    .step-dot.is-active { background: var(--brand-primary); border-color: var(--brand-primary); color: white; box-shadow: 0 4px 12px rgba(44, 76, 151, 0.3); }
+    .step-dot.is-completed { background: var(--success); border-color: var(--success); color: white; }
+    .step-connector { flex: 1; height: 2px; background: var(--border-medium); margin: 0 8px; position: relative; top: -16px; }
+    .step-label { font-size: 12px; font-weight: 500; color: var(--text-secondary); text-align: center; } /* ← changed from --text-muted */
+    .step-dot.is-active + .step-label { color: var(--brand-primary); font-weight: 600; }
+
+    /* Form Elements */
+    .step-legend { font-size: 18px; font-weight: 600; color: var(--text-primary); margin-bottom: 20px; padding: 0; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .field { display: flex; flex-direction: column; }
+    .field.full-width { grid-column: 1 / -1; }
+    .field-label { display: flex; align-items: center; gap: 4px; margin-bottom: 6px; font-size: 14px; font-weight: 500; color: var(--text-secondary); }
+    .label-text { font-weight: 600; }
+    .required { color: #EF4444; font-size: 12px; }
+    .input-field { padding: 12px 16px; border: 1.5px solid var(--border-light); border-radius: var(--radius-md); background: var(--surface-primary); font-size: 14px; transition: all 0.2s ease; color: var(--text-primary); }
+    .input-field:focus { outline: none; border-color: var(--brand-primary); box-shadow: 0 0 0 3px rgba(44, 76, 151, 0.1); }
+    .input-field.error { border-color: #EF4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1); }
+    .textarea-field { resize: vertical; min-height: 80px; font-family: inherit; }
+
+    /* Chips Grid */
+    .chips-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+    .chip { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--surface-tertiary); border: 1.5px solid var(--border-light); border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s ease; font-size: 13px; font-weight: 500; }
+    .chip:hover { border-color: var(--brand-primary); background: rgba(44, 76, 151, 0.05); }
+    .chip input[type="checkbox"] { display: none; }
+    .chip input[type="checkbox"]:checked + .chip-label { color: var(--brand-primary); font-weight: 600; }
+    .chip input[type="checkbox"]:checked ~ .chip-label::before { content: "✓ "; font-weight: bold; }
+    .chip-label { color: var(--text-secondary); transition: color 0.2s ease; }
+
+    /* Form Actions */
+    .form-actions { display: flex; gap: 12px; margin-top: 24px; }
+    .form-actions.between { justify-content: space-between; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border: 1.5px solid transparent; border-radius: var(--radius-md); font-size: 14px; font-weight: 600; text-decoration: none; cursor: pointer; transition: all 0.2s ease; background: var(--surface-primary); color: var(--text-secondary); }
+    .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+    .btn:active { transform: translateY(0); }
+    .btn-next, .btn-primary { background: linear-gradient(135deg, var(--brand-primary), var(--brand-accent)); color: white; border: none; }
+    .btn-next:hover, .btn-primary:hover { box-shadow: 0 4px 12px rgba(44, 76, 151, 0.3); }
+    .btn-prev { border-color: var(--border-medium); color: var(--text-secondary); }
+    .btn-prev:hover { border-color: var(--brand-primary); color: var(--brand-primary); }
+    .btn-icon { width: 16px; height: 16px; }
+    .success-note, .error-note { margin-top: 16px; font-size: 14px; }
+
+    /* Success Popup Styles */
+    .success-popup {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .success-popup.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .popup-content {
+      background: var(--surface-primary);
+      border-radius: var(--radius-xl);
+      padding: clamp(24px, 3vw, 32px);
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: var(--shadow-xl);
+      border: 1px solid var(--border-light);
+      transform: scale(0.9);
+      transition: transform 0.3s ease;
+    }
+
+    .success-popup.active .popup-content {
+      transform: scale(1);
+    }
+
+    .popup-icon {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, var(--success), #059669);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      position: relative;
+    }
+
+    .popup-icon::before {
+      content: "✓";
+      font-size: 28px;
+      font-weight: bold;
+      color: white;
+    }
+
+    .popup-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0 0 12px;
+    }
+
+    .popup-message {
+      font-size: 16px;
+      color: var(--text-secondary);
+      margin: 0 0 24px;
+      line-height: 1.5;
+    }
+
+    .popup-button {
+      background: linear-gradient(135deg, var(--brand-primary), var(--brand-accent));
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .popup-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(44, 76, 151, 0.3);
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .chips-grid { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); }
+      .steps { gap: 4px; }
+      .step-label { font-size: 11px; }
+      .company-header { flex-direction: column; text-align: center; gap: 12px; }
+      .popup-content {
+        margin: 20px;
+        width: calc(100% - 40px);
+      }
+    }
+    @media (max-width: 480px) {
+      .form-actions { flex-direction: column; }
+      .form-actions.between { flex-direction: column; gap: 12px; }
+      .btn { justify-content: center; }
+      .trust-badges { flex-direction: column; }
+      .popup-title { font-size: 20px; }
+      .popup-message { font-size: 14px; }
+    }
+  </style>
+
+  <!-- Minimal client island: step nav + validation + AJAX submit (pure JS) -->
+  <script type="module" is:inline>
+    (function () {
+      const form = document.getElementById('leadForm');
+      if (!form) return;
+
+      const steps = Array.from(form.querySelectorAll('fieldset.step'));
+      const dots  = Array.from(form.querySelectorAll('[data-step-dot]'));
+      const successNote = form.querySelector('.success-note');
+      const errorNote   = form.querySelector('.error-note');
+
+      let idx = 0; // 0..2 => steps 1..3
+
+      function showStep(newIndex) {
+        steps.forEach((fs, i) => {
+          const active = i === newIndex;
+          if (active) {
+            fs.removeAttribute('hidden');
+            fs.setAttribute('aria-hidden', 'false');
+          } else {
+            fs.setAttribute('hidden', '');
+            fs.setAttribute('aria-hidden', 'true');
+          }
+        });
+        dots.forEach((d) => {
+          const n = Number(d.dataset.stepDot);
+          d.classList.toggle('is-active', n === newIndex + 1);
+          d.classList.toggle('is-completed', n < newIndex + 1);
+        });
+        const first = steps[newIndex].querySelector('input, select, textarea');
+        if (first && typeof first.focus === 'function') {
+          try {
+            first.focus({ preventScroll: true });
+          } catch {
+            first.focus();
+          }
+        }
+        idx = newIndex;
+      }
+
+      function validateStep(stepIndex) {
+        const fs = steps[stepIndex];
+        const fields = Array.from(fs.querySelectorAll('.input-field'));
+        let ok = true;
+        fields.forEach((el) => {
+          el.classList.remove('error');
+          if (!el.checkValidity()) {
+            ok = false;
+            el.classList.add('error');
+          }
+        });
+        if (!ok) {
+          const firstInvalid = fields.find((el) => !el.checkValidity());
+          if (firstInvalid && firstInvalid.reportValidity) firstInvalid.reportValidity();
+        }
+        return ok;
+      }
+
+      // Next / Prev (event delegation on the form)
+      form.addEventListener('click', (e) => {
+        const t = e.target;
+        if (t.closest('[data-next]')) {
+          e.preventDefault();
+          if (!validateStep(idx)) return;
+          if (idx < steps.length - 1) showStep(idx + 1);
+        } else if (t.closest('[data-prev]')) {
+          e.preventDefault();
+          if (idx > 0) showStep(idx - 1);
+        }
+      });
+
+      // Submit
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!validateStep(idx)) return;
+
+        const fd = new FormData(form);
+        const fabricTypes = Array.from(
+          form.querySelectorAll('input[type="checkbox"][name="fabricTypes"]')
+        )
+          .filter((c) => c.checked)
+          .map((c) => c.value);
+
+        const payload = {
+          companyName: String(fd.get('companyName') || ''),
+          contactPerson: String(fd.get('contactPerson') || ''),
+          email: String(fd.get('email') || ''),
+          phoneNumber: String(fd.get('phone') || ''),
+          businessType: String(fd.get('businessType') || ''),
+          annualFabricVolume: String(fd.get('annualVolume') || ''),
+          primaryMarkets: String(fd.get('primaryMarkets') || ''),
+          fabricTypesOfInterest: fabricTypes,
+          specificationsRequirements: String(fd.get('specifications') || ''),
+          timeline: String(fd.get('timeline') || ''),
+          additionalMessage: String(fd.get('message') || ''),
+        };
+
+        // Config from data-* (set via PUBLIC env at build)
+        const submitUrl = form.dataset.submitUrl || '';
+        const apiKey = form.dataset.apiKey || '';
+        const adminEmail = form.dataset.adminEmail || '';
+        const apiKeyHeader = form.dataset.apiKeyHeader || 'x-api-key';
+        const adminEmailHeader = form.dataset.adminEmailHeader || 'x-admin-email';
+
+        // If no endpoint configured, just show success UX (useful on static previews)
+        if (!submitUrl) {
+          showSuccessPopup();
+          return;
+        }
+
+        try {
+          // disable buttons while posting
+          form.querySelectorAll('button').forEach((b) => (b.disabled = true));
+
+          const headers = { 'Content-Type': 'application/json' };
+          if (apiKey) headers[apiKeyHeader] = apiKey;
+          if (adminEmail) headers[adminEmailHeader] = adminEmail;
+
+          const res = await fetch(submitUrl, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(payload),
+          });
+
+          if (!res.ok) throw new Error('POST ' + res.status);
+
+          if (errorNote) errorNote.hidden = true;
+          if (successNote) successNote.hidden = false;
+          
+          // Show success popup and reset form
+          showSuccessPopup();
+        } catch (err) {
+          console.error(err);
+          if (successNote) successNote.hidden = true;
+          if (errorNote) errorNote.hidden = false;
+        } finally {
+          form.querySelectorAll('button').forEach((b) => (b.disabled = false));
+        }
+      });
+
+      // Success popup function
+      function showSuccessPopup() {
+        const successPopup = document.getElementById('successPopup');
+        if (successPopup) {
+          successPopup.classList.add('active');
+          
+          // Close popup and reset form
+          const closePopup = () => {
+            successPopup.classList.remove('active');
+            form.reset();
+            showStep(0); // Reset to first step
+            
+            // Reset progress dots
+            dots.forEach((d) => {
+              const n = Number(d.dataset.stepDot);
+              d.classList.toggle('is-active', n === 1);
+              d.classList.toggle('is-completed', false);
+            });
+          };
+          
+          // Close on button click
+          document.getElementById('popupClose').onclick = closePopup;
+          
+          // Auto close after 3 seconds
+          setTimeout(closePopup, 3000);
+        }
+      }
+
+      // First render
+      showStep(idx);
+    })();
+  </script>
+</section>
