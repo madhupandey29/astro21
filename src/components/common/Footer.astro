@@ -79,41 +79,38 @@ const year = new Date().getFullYear();
             </div>
           </div>
 
-          <!-- My Account -->
-        <!-- Site Sections (same as navbar) -->
-<div class="age-col" role="listitem">
-  <div class="age-widget">
-    <h4 class="age-title">Quick Links</h4>
-    <ul class="age-list">
-      <li>
-        <a href="/" class="age-link age-navLink">Home</a>
-      </li>
-      <li>
-        <a href="#aboutus" class="age-link age-navLink">About</a>
-      </li>
-      <li>
-        <a href="#products" class="age-link age-navLink">Products</a>
-      </li>
-      <li>
-        <a href="#testimonials" class="age-link age-navLink">Testimonials</a>
-      </li>
-     
-   
-    </ul>
-  </div>
-</div>
+          <!-- Quick Links -->
+          <div class="age-col" role="listitem">
+            <div class="age-widget">
+              <h4 class="age-title">Quick Links</h4>
+              <ul class="age-list">
+                <li>
+                  <a href="/" class="age-link age-navLink">Home</a>
+                </li>
+                <li>
+                  <a href="#aboutus" class="age-link age-navLink">About</a>
+                </li>
+                <li>
+                  <a href="#products" class="age-link age-navLink">Products</a>
+                </li>
+                <li>
+                  <a href="#testimonials" class="age-link age-navLink">Testimonials</a>
+                </li>
+              </ul>
+            </div>
+          </div>
 
           <!-- Information -->
           <div class="age-col" role="listitem">
             <div class="age-widget">
               <h4 class="age-title">Information</h4>
               <ul class="age-list">
-                   <li>
-        <a href="#contact" class="age-link age-navLink">Contact</a>
-      </li>
-       <li>
-        <a href="#faq" class="age-link age-navLink">FAQ</a>
-      </li>
+                <li>
+                  <a href="#contact" class="age-link age-navLink">Contact</a>
+                </li>
+                <li>
+                  <a href="#faq" class="age-link age-navLink">FAQ</a>
+                </li>
                 <li><a href="/market-area" class="age-link">Market Area</a></li>
               </ul>
             </div>
@@ -124,7 +121,7 @@ const year = new Date().getFullYear();
             <div class="age-widget">
               <h4 class="age-title">Talk To Us</h4>
 
-              <!-- Newsletter (no JS: button is type="button") -->
+              <!-- Newsletter -->
               <div class="age-newsMini">
                 <p class="age-newsDesc">Subscribe to our newsletter to get the latest news and offers.</p>
                 <form class="age-pill" action="#" method="post">
@@ -168,16 +165,21 @@ const year = new Date().getFullYear();
                       <circle cx="12" cy="10" r="3"/>
                     </svg>
                   </span>
-                  <div class="age-addrLines">
+                  <a 
+                    href="https://maps.google.com/?q=404+4th+Floor+Safal+Prelude+Corporate+Road+Prahlad+Nagar+Ahmedabad+Gujarat+380015" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    class="age-addrLines age-addrLink"
+                  >
                     <div>4th Floor, Safal Prelude</div>
                     <div>404 Corporate Road, Near YMCA Club,</div>
                     <div>Prahlad Nagar, Ahmedabad, Gujarat</div>
                     <div>380015</div>
-                  </div>
+                  </a>
                 </div>
               </div>
 
-              <!-- Social (wrap; no scrollbar) -->
+              <!-- Social -->
               <div class="age-social" role="group" aria-label="Social links">
                 {socials.map((s) => {
                   const t = `${s?.label ?? ''} ${s?.icon ?? ''} ${s?.link ?? ''}`.toLowerCase();
@@ -200,7 +202,6 @@ const year = new Date().getFullYear();
                     >
                       {
                         brand === 'youtube' ? (
-                          /* rounded screen + play (inherits color) */
                           <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
                             <rect x="2.5" y="6.5" width="19" height="11" rx="3" ry="3" fill="none" stroke="currentColor" stroke-width="2"/>
                             <path d="M10 9.7v4.6l4.8-2.3L10 9.7z" fill="currentColor"/>
@@ -226,7 +227,6 @@ const year = new Date().getFullYear();
                             <path d="M4 4l16 16M20 4L4 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                           </svg>
                         ) : (
-                          /* generic external */
                           <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
                             <path d="M12 8h6v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             <path d="M6 18L18 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -358,7 +358,34 @@ const year = new Date().getFullYear();
     .age-talkAddress{ margin-top:6px; }
     .age-addrRow{ display:flex; gap:10px; align-items:flex-start; }
     .age-addrPin{ color:var(--BRAND_GOLD); display:inline-flex; align-items:center; justify-content:center; }
-    .age-addrLines{ line-height:1.65; color:var(--TEXT_SOFT); }
+    .age-addrLines{ 
+      line-height:1.65; 
+      color:var(--TEXT_SOFT); 
+    }
+
+    /* Clickable address link */
+    .age-addrLink{
+      text-decoration:none;
+      color:var(--TEXT_SOFT) !important;
+      border:1px solid transparent;
+      border-radius:8px;
+      padding:8px 12px;
+      margin:-8px -12px;
+      transition:all 0.3s ease;
+      display:block;
+    }
+
+    .age-addrLink:hover{
+      color:var(--BRAND_GOLD) !important;
+      background:rgba(255,255,255,0.05);
+      border-color:var(--BORDER_SOFT);
+      transform:translateY(-1px);
+      box-shadow:0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .age-addrLink div{
+      transition:color 0.3s ease;
+    }
 
     /* SOCIAL: wrap; no scrollbars; same visual weight */
     .age-social{
@@ -415,6 +442,7 @@ const year = new Date().getFullYear();
       .age-copy{ font-size:13.6px; }
       .age-trustCard{ width:42px; height:42px; border-radius:10px; }
       .age-trustCard img{ max-height:30px; }
+      .age-addrLink{ padding:6px 10px; margin:-6px -10px; }
     }
 
     /* Optional dark mode tweaks */

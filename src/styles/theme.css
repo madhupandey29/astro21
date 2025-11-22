@@ -10,7 +10,8 @@
   --tp-theme-secondary: #D6A74B; /* AGE Gold */
   --tp-theme-1:         #112338; /* Deep navy */
   --AGE-GOLD-INK-AA: #6B5316;   /* dark gold ink ~6.6:1 */
-  --AGE-GOLD-BG-SOFT: #FFF4CC;  /* pale gold chip background */
+  --AGE-GOLD-BG-SOFT: #FFF4CC; 
+   --fab-accent: #0ea5e9; /* pale gold chip background */
 
   /* Navbar theme */
   --tp-nav-bg:        #F6F5EB;      /* creamy pill background (tweak here) */

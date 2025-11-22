@@ -47,7 +47,13 @@ const {
   <div class="sheet__card" role="document">
     <button class="sheet__close" data-close aria-label="Close">
       <svg viewBox="0 0 24 24" class="x" aria-hidden="true">
-        <path d="M18 6L6 18M6 6l12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path
+          d="M18 6L6 18M6 6l12 12"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        />
       </svg>
     </button>
 
@@ -73,24 +79,32 @@ const {
   .fab{
     position: fixed;
     bottom: var(--fab-bottom, 5.5rem);
-    width: clamp(3.25rem, 6vw, 3.75rem);
-    height: clamp(3.25rem, 6vw, 3.75rem);
+    width: clamp(3.4rem, 6.2vw, 3.9rem);
+    height: clamp(3.4rem, 6.2vw, 3.9rem);
     display: grid;
     place-items: center;
-    border: none;
+
     border-radius: 999px;
-    color: #fff;
+    border: 2px solid var(--brand);           /* BLUE BORDER */
+    background: #ffffff;
+    color: var(--brand);
     cursor: pointer;
     z-index: 9999;
-    background: linear-gradient(135deg, var(--brand), color-mix(in oklab, var(--brand) 70%, black));
-    box-shadow: 0 .9rem 1.6rem color-mix(in oklab, var(--brand) 35%, transparent);
+
+    box-shadow: 0 10px 24px rgba(0,0,0,0.28);
     overflow: hidden;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition:
+      transform 0.18s ease,
+      box-shadow 0.18s ease,
+      border-color 0.18s ease,
+      background-color 0.18s ease;
   }
   
   .fab:hover {
     transform: translateY(-2px);
-    box-shadow: 0 1.2rem 2rem color-mix(in oklab, var(--brand) 45%, transparent);
+    background: #f8fafc;
+    border-color: color-mix(in srgb, var(--brand) 80%, #ffffff 20%);
+    box-shadow: 0 14px 30px rgba(0,0,0,0.32);
   }
   
   .fab--right{ 
@@ -102,9 +116,13 @@ const {
   }
   
   .fab__icon{ 
-    font-size: 1.4rem; 
+    font-size: 1.6rem;
+    line-height: 1;
     position: relative; 
-    z-index: 1; 
+    z-index: 1;
+    color: var(--brand);
+    font-weight: 700;
+    -webkit-text-stroke: 0.4px currentColor;
   }
   
   .fab__ripple{
@@ -112,15 +130,15 @@ const {
     inset: 0;
     border-radius: inherit;
     pointer-events: none;
-    background: #fff;
+    background: var(--brand);
     opacity: 0;
     transform: scale(1);
     transition: opacity .25s ease, transform .25s ease;
   }
   
   .fab:hover .fab__ripple{ 
-    opacity: .15; 
-    transform: scale(1.2); 
+    opacity: .10; 
+    transform: scale(1.18); 
   }
 
   /* ===== SHEET (dialog) ===== */
@@ -149,7 +167,7 @@ const {
     width: 100%;
     max-height: var(--sheet-h);
     background: #fff;
-    border-radius: clamp(14px, 2vw, 18px);
+    border-radius: clamp(18px, 2vw, 22px);
     box-shadow: var(--shadow-lg);
     position: relative;
     overflow: hidden;
@@ -169,37 +187,47 @@ const {
     }
   }
 
+  /* Close button – light chip */
   .sheet__close{
     position: absolute;
-    right: .65rem;
-    top: .65rem;
-    width: 2.25rem;
-    height: 2.25rem;
+    right: clamp(14px, 1.6vw, 18px);
+    top: clamp(14px, 1.6vw, 18px);
+    width: 2.4rem;
+    height: 2.4rem;
+
     display: grid;
     place-items: center;
-    border: 1px solid rgb(2 6 23 / .08);
-    background: #fff;
-    border-radius: 10px;
+
+    border-radius: 999px;
+    border: 1px solid rgba(15,23,42,0.10);
     cursor: pointer;
     z-index: 2;
-    transition: all 0.2s ease;
+
+    background: #ffffff;
+    color: #0f172a;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
+
+    transition: transform 0.18s ease,
+                box-shadow 0.18s ease,
+                background-color 0.18s ease,
+                border-color 0.18s ease;
   }
   
   .sheet__close:hover{ 
-    background: #f8fafc; 
-    transform: scale(1.05);
-    box-shadow: var(--shadow-sm);
+    background: #f8fafc;
+    border-color: rgba(15,23,42,0.16);
+    transform: translateY(-1px);
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.25);
   }
   
   .x{ 
-    width: 1.1rem; 
-    height: 1.1rem; 
+    width: 1.15rem; 
+    height: 1.15rem; 
   }
 
   /* ===== Centered scroll frame ===== */
   .sheet__body{
     box-sizing: border-box;
-    --side-pad: clamp(16px, 2vw, 24px);
     scrollbar-gutter: stable both-edges;
     max-height: var(--sheet-h);
     overflow-y: auto;
@@ -207,6 +235,10 @@ const {
     display: flex;
     justify-content: center;
     align-items: flex-start;
+
+    /* reduced inner top white space */
+    padding: clamp(10px, 1.4vw, 16px);
+    padding-top: clamp(6px, 0.8vw, 10px);
   }
 
   .sheet__content{
@@ -214,6 +246,12 @@ const {
     max-width: 100%;
     margin: 0 auto;
     box-sizing: border-box;
+  }
+
+  /* Remove extra top gap from the contact section when inside modal */
+  .sheet :where(#contact){
+    margin-top: 0 !important;
+    padding-top: 0 !important;
   }
 
   /* Reset contact section styles for modal */
@@ -261,156 +299,115 @@ const {
 </style>
 
 <script is:inline>
-// Enhanced modal functionality with better error handling
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('DOM loaded - initializing contact modal...');
-  
-  const fab = document.getElementById('contact-fab');
-  const dialog = document.getElementById('contact-dialog');
-  const mount = document.getElementById('contact-modal-mount');
-  
-  console.log('Elements found:', { fab, dialog, mount });
-  
-  if (!fab || !dialog || !mount) {
-    console.error('Required elements not found:', {
-      fab: !!fab,
-      dialog: !!dialog,
-      mount: !!mount
+  function initContactModal() {
+    if (document.documentElement.dataset.contactModalInit === "1") return;
+    document.documentElement.dataset.contactModalInit = "1";
+
+    const fab = document.getElementById("contact-fab");
+    const dialog = document.getElementById("contact-dialog");
+    const mount = document.getElementById("contact-modal-mount");
+
+    if (!fab || !dialog || !mount) return;
+    if (typeof dialog.showModal !== "function") {
+      fab.style.display = "none";
+      return;
+    }
+
+    const targetId = dialog.dataset.targetId || "contact";
+    const contactSection = document.getElementById(targetId);
+    if (!contactSection) {
+      fab.style.display = "none";
+      return;
+    }
+
+    let placeholder = null;
+    let originalParent = null;
+    let originalNextSibling = null;
+
+    function openModal() {
+      try {
+        originalParent = contactSection.parentNode;
+        originalNextSibling = contactSection.nextSibling;
+
+        placeholder = document.createElement("div");
+        const rect = contactSection.getBoundingClientRect();
+        placeholder.style.height = rect.height + "px";
+        placeholder.setAttribute("aria-hidden", "true");
+        if (originalParent) {
+          originalParent.insertBefore(placeholder, contactSection);
+        }
+
+        mount.appendChild(contactSection);
+
+        dialog.showModal();
+        fab.setAttribute("aria-expanded", "true");
+        document.documentElement.style.overflow = "hidden";
+
+        setTimeout(function () {
+          const firstInput = contactSection.querySelector(
+            "input, select, textarea, button"
+          );
+          if (firstInput && typeof firstInput.focus === "function") {
+            firstInput.focus();
+          }
+        }, 100);
+      } catch (error) {
+        console.error("Error opening modal:", error);
+      }
+    }
+
+    function closeModal() {
+      try {
+        if (originalParent && contactSection.parentNode === mount) {
+          if (originalNextSibling) {
+            originalParent.insertBefore(contactSection, originalNextSibling);
+          } else {
+            originalParent.appendChild(contactSection);
+          }
+        }
+
+        if (placeholder && placeholder.parentNode) {
+          placeholder.parentNode.removeChild(placeholder);
+        }
+
+        placeholder = null;
+        originalParent = null;
+        originalNextSibling = null;
+
+        dialog.close();
+        fab.setAttribute("aria-expanded", "false");
+        document.documentElement.style.overflow = "";
+        fab.focus();
+      } catch (error) {
+        console.error("Error closing modal:", error);
+      }
+    }
+
+    fab.addEventListener("click", openModal);
+
+    dialog.addEventListener("cancel", function (event) {
+      event.preventDefault();
+      closeModal();
     });
-    return;
-  }
 
-  // Check if dialog supports showModal
-  if (typeof dialog.showModal !== 'function') {
-    console.error('Dialog element does not support showModal method');
-    fab.style.display = 'none'; // Hide FAB if not supported
-    return;
-  }
-
-  const targetId = dialog.dataset.targetId || 'contact';
-  const contactSection = document.getElementById(targetId);
-  
-  console.log('Contact section:', contactSection);
-  
-  if (!contactSection) {
-    console.error(`Contact section with id "${targetId}" not found`);
-    fab.style.display = 'none';
-    return;
-  }
-
-  let placeholder = null;
-  let originalParent = null;
-  let originalNextSibling = null;
-
-  function openModal() {
-    console.log('Opening modal...');
-    
-    try {
-      // Store original position
-      originalParent = contactSection.parentNode;
-      originalNextSibling = contactSection.nextSibling;
-
-      // Create placeholder to maintain layout
-      placeholder = document.createElement('div');
-      const rect = contactSection.getBoundingClientRect();
-      placeholder.style.height = rect.height + 'px';
-      placeholder.setAttribute('aria-hidden', 'true');
-      originalParent.insertBefore(placeholder, contactSection);
-
-      // Move section to modal
-      mount.appendChild(contactSection);
-      
-      // Show modal
-      dialog.showModal();
-      fab.setAttribute('aria-expanded', 'true');
-      document.documentElement.style.overflow = 'hidden';
-
-      console.log('Modal opened successfully');
-
-      // Focus first input field
-      setTimeout(() => {
-        const firstInput = contactSection.querySelector('input, select, textarea, button');
-        if (firstInput && firstInput.focus) {
-          firstInput.focus();
-        }
-      }, 100);
-
-    } catch (error) {
-      console.error('Error opening modal:', error);
-    }
-  }
-
-  function closeModal() {
-    console.log('Closing modal...');
-    
-    try {
-      // Move section back to original position
-      if (originalParent && contactSection.parentNode === mount) {
-        if (originalNextSibling) {
-          originalParent.insertBefore(contactSection, originalNextSibling);
-        } else {
-          originalParent.appendChild(contactSection);
-        }
+    dialog.addEventListener("click", function (event) {
+      if (event.target === dialog) {
+        closeModal();
       }
+    });
 
-      // Remove placeholder
-      if (placeholder && placeholder.parentNode) {
-        placeholder.parentNode.removeChild(placeholder);
+    const closeButton = dialog.querySelector("[data-close]");
+    if (closeButton) {
+      closeButton.addEventListener("click", closeModal);
+    }
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && dialog.open) {
+        closeModal();
       }
-
-      // Reset variables
-      placeholder = null;
-      originalParent = null;
-      originalNextSibling = null;
-
-      // Close modal
-      dialog.close();
-      fab.setAttribute('aria-expanded', 'false');
-      document.documentElement.style.overflow = '';
-      
-      // Return focus to FAB
-      fab.focus();
-
-      console.log('Modal closed successfully');
-
-    } catch (error) {
-      console.error('Error closing modal:', error);
-    }
+    });
   }
 
-  // Event listeners
-  fab.addEventListener('click', openModal);
-  
-  dialog.addEventListener('cancel', (event) => {
-    event.preventDefault();
-    closeModal();
-  });
-
-  dialog.addEventListener('click', (event) => {
-    if (event.target === dialog) {
-      closeModal();
-    }
-  });
-
-  const closeButton = dialog.querySelector('[data-close]');
-  if (closeButton) {
-    closeButton.addEventListener('click', closeModal);
-  }
-
-  // Close on Escape key
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && dialog.open) {
-      closeModal();
-    }
-  });
-
-  console.log('Contact modal initialized successfully');
-});
-
-// Also initialize on Astro page load
-document.addEventListener('astro:page-load', function() {
-  console.log('Astro page load - reinitializing contact modal...');
-  // Re-run the initialization
-  document.dispatchEvent(new Event('DOMContentLoaded'));
-});
+  document.addEventListener("DOMContentLoaded", initContactModal);
+  document.addEventListener("astro:page-load", initContactModal);
 </script>

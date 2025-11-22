@@ -61,7 +61,6 @@ const DATA: TItem[] = [
   },
 ];
 
-/* no need to duplicate, we now have 9 unique items */
 const ITEMS: TItem[] = DATA;
 
 const metrics = [
@@ -71,45 +70,7 @@ const metrics = [
   { k: "CLIENT RETENTION", v: "98%" },
 ];
 
-const pagesBase = ITEMS.length; // mobile: 1 card per view
-const pagesSm = Math.ceil(ITEMS.length / 2); // tablet: 2 per view
-const pagesLg = Math.ceil(ITEMS.length / 3); // desktop: 3 per view
-
-// tablet / desktop rules (track translate)
-function makePagedRules(prefix: "s" | "l", pages: number) {
-  return Array.from(
-    { length: pages },
-    (_, i) => `
-#tc-${prefix}-${i + 1}:checked ~ .viewport .track{transform:translateX(-${
-      i * 100
-    }%);}
-#tc-${prefix}-${i + 1}:checked ~ .dots.${prefix} label[for="tc-${prefix}-${i + 1}"]{background:var(--gold);transform:scale(1.25);}
-`
-  ).join("\n");
-}
-
-// mobile rules: show ONLY 1 slide (no peek of next)
-const mobileRules = Array.from(
-  { length: pagesBase },
-  (_, i) => `
-#tc-b-${i + 1}:checked ~ .viewport .slides .slide{display:none;}
-#tc-b-${i + 1}:checked ~ .viewport .slides .slide:nth-child(${i + 1}){display:block;}
-#tc-b-${i + 1}:checked ~ .dots.b label[for="tc-b-${i + 1}"]{background:var(--gold);transform:scale(1.25);}
-`
-).join("\n");
-
-/* injected CSS */
-const injected = `
-@media (max-width:639.98px){
-${mobileRules}
-}
-@media (min-width:640px) and (max-width:1023.98px){
-${makePagedRules("s", pagesSm)}
-}
-@media (min-width:1024px){
-${makePagedRules("l", pagesLg)}
-}
-`;
+const TOTAL = ITEMS.length;
 ---
 
 <section
@@ -125,134 +86,93 @@ ${makePagedRules("l", pagesLg)}
     </div>
 
     <div class="slider-wrap">
-      <div class="carousel" id="tc">
-        {/* radios */}
-        {Array.from({ length: pagesBase }).map((_, i) => (
-          <input
-            class="nav-radio base"
-            type="radio"
-            name="tc-b"
-            id={`tc-b-${i + 1}`}
-            checked={i === 0}
-            aria-label={`Show slide ${i + 1} (mobile)`}
-          />
-        ))}
-        {Array.from({ length: pagesSm }).map((_, i) => (
-          <input
-            class="nav-radio sm"
-            type="radio"
-            name="tc-s"
-            id={`tc-s-${i + 1}`}
-            checked={i === 0}
-            aria-label={`Show slide ${i + 1} (tablet)`}
-          />
-        ))}
-        {Array.from({ length: pagesLg }).map((_, i) => (
-          <input
-            class="nav-radio lg"
-            type="radio"
-            name="tc-l"
-            id={`tc-l-${i + 1}`}
-            checked={i === 0}
-            aria-label={`Show slide ${i + 1} (desktop)`}
-          />
-        ))}
-
-        <div class="viewport">
-          <div class="track">
-            <ul class="slides" role="list">
-              {ITEMS.map((item) => (
-                <li class="slide">
-                  <article class="card">
-                    <div class="top">
-                      <div
-                        class="stars"
-                        role="img"
-                        aria-label={`${Number(
-                          item.review.toFixed(1)
-                        )} out of 5 stars`}
-                      >
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <svg
-                            aria-hidden="true"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill={
-                              i < Math.floor(item.review)
-                                ? "currentColor"
-                                : "none"
-                            }
-                            stroke="currentColor"
-                          >
-                            <path
-                              d="M12 2l3.09 6.26L22 9.27l-5 4.85L18.18 22 12 18.77 5.82 22 7 14.12l-5-4.85 6.91-1.01L12 2z"
-                            />
-                          </svg>
-                        ))}
-                      </div>
-
-                      <span class="verified">
+      <div
+        class="carousel"
+        aria-roledescription="carousel"
+        aria-label="Customer testimonials"
+      >
+        <div class="viewport" data-testi-viewport>
+          <ul class="slides" role="list">
+            {ITEMS.map((item, index) => (
+              <li
+                class="slide"
+                data-testi-slide
+                data-index={index}
+                aria-roledescription="slide"
+                aria-label={`Slide ${index + 1} of ${TOTAL}`}
+              >
+                <article class="card">
+                  <div class="top">
+                    <div
+                      class="stars"
+                      role="img"
+                      aria-label={`${Number(
+                        item.review.toFixed(1)
+                      )} out of 5 stars`}
+                    >
+                      {Array.from({ length: 5 }).map((_, i) => (
                         <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
                           aria-hidden="true"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill={
+                            i < Math.floor(item.review)
+                              ? "currentColor"
+                              : "none"
+                          }
+                          stroke="currentColor"
                         >
                           <path
                             d="M12 2l3.09 6.26L22 9.27l-5 4.85L18.18 22 12 18.77 5.82 22 7 14.12l-5-4.85 6.91-1.01L12 2z"
                           />
                         </svg>
-                        VERIFIED
-                      </span>
-                    </div>
-
-                    <p class="quote">“{item.desc}”</p>
-
-                    <div class="client">
-                      <div class="industry">{item.industry}</div>
-                      <div class="dot"></div>
-                      <div class="loc">{item.location}</div>
-                    </div>
-
-                    <div class="tags" aria-label="tags">
-                      {item.tags.slice(0, 3).map((t) => (
-                        <span class="chip">{t}</span>
                       ))}
                     </div>
-                  </article>
-                </li>
-              ))}
-            </ul>
-          </div>
+
+                    <span class="verified">
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M12 2l3.09 6.26L22 9.27l-5 4.85L18.18 22 12 18.77 5.82 22 7 14.12l-5-4.85 6.91-1.01L12 2z"
+                        />
+                      </svg>
+                      VERIFIED
+                    </span>
+                  </div>
+
+                  <p class="quote">“{item.desc}”</p>
+
+                  <div class="client">
+                    <div class="industry">{item.industry}</div>
+                    <div class="dot"></div>
+                    <div class="loc">{item.location}</div>
+                  </div>
+
+                  <div class="tags" aria-label="tags">
+                    {item.tags.slice(0, 3).map((t) => (
+                      <span class="chip">{t}</span>
+                    ))}
+                  </div>
+                </article>
+              </li>
+            ))}
+          </ul>
         </div>
 
         {/* Dots */}
-        <div class="dots b" aria-label="carousel pagination (mobile)">
-          {Array.from({ length: pagesBase }).map((_, i) => (
-            <label
-              for={`tc-b-${i + 1}`}
-              class="dot"
+        <div class="dots" aria-label="carousel pagination">
+          {Array.from({ length: TOTAL }).map((_, i) => (
+            <button
+              type="button"
+              class={`dot ${i === 0 ? "is-active" : ""}`}
+              data-testi-dot
               aria-label={`Go to slide ${i + 1}`}
-            ></label>
-          ))}
-        </div>
-        <div class="dots s" aria-label="carousel pagination (tablet)">
-          {Array.from({ length: pagesSm }).map((_, i) => (
-            <label
-              for={`tc-s-${i + 1}`}
-              class="dot"
-              aria-label={`Go to page ${i + 1}`}
-            ></label>
-          ))}
-        </div>
-        <div class="dots l" aria-label="carousel pagination (desktop)">
-          {Array.from({ length: pagesLg }).map((_, i) => (
-            <label
-              for={`tc-l-${i + 1}`}
-              class="dot"
-              aria-label={`Go to page ${i + 1}`}
-            ></label>
+            ></button>
           ))}
         </div>
       </div>
@@ -288,6 +208,11 @@ ${makePagedRules("l", pagesLg)}
       max-width: 1200px;
       margin: 0 auto;
       padding: 0 16px;
+    }
+    @media (max-width: 480px) {
+      .age-wrap {
+        padding-inline: 12px;
+      }
     }
 
     .age-head {
@@ -326,6 +251,15 @@ ${makePagedRules("l", pagesLg)}
       letter-spacing: 0.3px;
       font-size: clamp(24px, 2.6vw, 34px);
     }
+    @media (max-width: 480px) {
+      .title {
+        font-size: 1.4rem;
+      }
+      .badge {
+        font-size: 0.6rem;
+        padding: 4px 8px;
+      }
+    }
 
     /* Cards */
     .card {
@@ -334,21 +268,36 @@ ${makePagedRules("l", pagesLg)}
       height: 100%;
       background: #fff;
       color: #0f2235;
-      border-radius: 12px;
-      padding: clamp(12px, 2.8vw, 14px);
+      border-radius: 14px;
+      padding: clamp(14px, 3vw, 18px);
       border: 1px solid color-mix(in srgb, #e5ebf3 45%, transparent);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.14);
       position: relative;
       box-sizing: border-box;
+      min-height: 220px;
+      max-width: 380px;
+      width: 100%;
+      margin-inline: auto;
     }
     .card::after {
       content: "";
       position: absolute;
       inset: 0;
-      border-radius: 12px;
+      border-radius: 14px;
       box-shadow: inset 0 0 0 1px
-        color-mix(in srgb, var(--gold) 20%, transparent);
+        color-mix(in srgb, var(--gold) 18%, transparent);
       pointer-events: none;
+    }
+    @media (max-width: 480px) {
+      .card {
+        max-width: 360px;
+        padding: 14px 14px 12px;
+      }
+    }
+    @media (min-width: 640px) {
+      .card {
+        max-width: none;
+      }
     }
 
     .top {
@@ -374,6 +323,7 @@ ${makePagedRules("l", pagesLg)}
       background: var(--AGE-GOLD-BG-SOFT, #fff4cc);
       border: 1px solid var(--tp-theme-secondary, #d6a74b);
       color: var(--AGE-GOLD-INK-AA, #6b5316);
+      white-space: nowrap;
     }
     .verified svg {
       width: 12px;
@@ -383,14 +333,16 @@ ${makePagedRules("l", pagesLg)}
     }
 
     .quote {
-      margin: 8px 0 10px;
+      margin: 10px 0 12px;
       line-height: 1.5;
       font-weight: 500;
-      min-height: 48px;
+      min-height: 56px;
+      font-size: 0.9rem;
     }
     @media (max-width: 420px) {
       .quote {
         min-height: 0;
+        font-size: 0.86rem;
       }
     }
 
@@ -440,6 +392,12 @@ ${makePagedRules("l", pagesLg)}
       border-color: var(--blue);
       color: #fff;
     }
+    @media (max-width: 420px) {
+      .chip {
+        font-size: 0.68rem;
+        padding: 3px 7px;
+      }
+    }
 
     /* Metrics */
     .metrics {
@@ -475,68 +433,80 @@ ${makePagedRules("l", pagesLg)}
         font-size: 17px;
       }
     }
-
-    /* ===== Radio carousel ===== */
-    .carousel {
-      position: relative;
-      overflow: hidden;
+    @media (max-width: 400px) {
+      .metrics {
+        gap: 8px;
+      }
+      .mcard {
+        padding: 10px 8px;
+      }
+      .mcard .val {
+        font-size: 16px;
+      }
+      .mcard .key {
+        font-size: 0.7rem;
+      }
     }
-    .nav-radio {
-      position: absolute;
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .viewport {
-      overflow: clip;
-      overscroll-behavior: contain;
-    }
-    @media (max-width: 639.98px) {
-      .viewport {
-        padding-inline: 16px;
+    @media (max-width: 360px) {
+      .metrics {
+        grid-template-columns: 1fr;
       }
     }
 
-    .track {
-      width: 100%;
-      transition: transform 360ms ease;
-      will-change: transform;
+    /* ===== Swipe carousel (scroll-snap) ===== */
+    .slider-wrap {
+      margin-top: 6px;
+    }
+
+    .carousel {
+      position: relative;
+    }
+
+    .viewport {
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      padding-block: 4px;
+      margin-inline: -8px;
+      padding-inline: 8px;
+
+      /* hide scrollbar but keep scroll */
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE/Edge */
+    }
+    .viewport::-webkit-scrollbar {
+      display: none; /* Chrome/Safari */
     }
 
     .slides {
       display: flex;
+      flex-wrap: nowrap; /* IMPORTANT: single row always */
       --gap: clamp(0.5rem, 1.6vw, 0.75rem);
       gap: var(--gap);
-      padding-bottom: 46px;
+      padding: 4px 0 44px;
       list-style: none;
       margin: 0;
       align-items: stretch;
     }
-    @media (max-width: 639.98px) {
-      .slides {
-        display: block; /* stack, then we hide all but selected */
-        gap: 0;
-      }
-    }
 
     .slide {
       flex: 0 0 100%;
-      min-width: 0;
+      scroll-snap-align: center;
+      display: flex;
     }
-    @media (max-width: 639.98px) {
-      .slide {
-        flex: none;
-        width: 100%;
-      }
-    }
+
+    /* Tablet: 2 cards visible */
     @media (min-width: 640px) {
       .slide {
-        flex-basis: calc((100% - var(--gap)) / 2);
+        flex: 0 0 50%;
       }
     }
+
+    /* Desktop: 3 cards visible */
     @media (min-width: 1024px) {
       .slide {
-        flex-basis: calc((100% - (var(--gap) * 2)) / 3);
+        flex: 0 0 calc(100% / 3);
       }
     }
 
@@ -544,61 +514,110 @@ ${makePagedRules("l", pagesLg)}
       position: absolute;
       left: 50%;
       transform: translateX(-50%);
-      bottom: 8px;
+      bottom: 10px;
       display: flex;
-      gap: 10px;
+      gap: 8px;
       z-index: 3;
     }
     .dots .dot {
       width: 8px;
       height: 8px;
       border-radius: 999px;
-      display: block;
-      background: rgba(255, 255, 255, 0.38);
-      outline: 2px solid transparent;
+      border: none;
+      padding: 0;
+      background: rgba(255, 255, 255, 0.35);
       cursor: pointer;
+      outline: 2px solid transparent;
+    }
+    .dots .dot.is-active {
+      background: var(--gold);
+      transform: scale(1.2);
     }
     .dots .dot:focus-visible {
       outline-color: var(--gold);
     }
-    .dots.b {
-      display: flex;
-    }
-    .dots.s,
-    .dots.l {
-      display: none;
-    }
-    @media (min-width: 640px) {
-      .dots.b {
-        display: none;
-      }
-      .dots.s {
-        display: flex;
-      }
-    }
-    @media (min-width: 1024px) {
-      .dots.s {
-        display: none;
-      }
-      .dots.l {
-        display: flex;
-      }
-    }
 
-    .sr-only {
-      position: absolute !important;
-      width: 1px;
-      height: 1px;
-      margin: -1px;
-      padding: 0;
-      border: 0;
-      clip: rect(0 0 0 0);
-      clip-path: inset(50%);
-      overflow: hidden;
-      white-space: nowrap;
+    @media (max-width: 360px) {
+      .dots {
+        bottom: 8px;
+        gap: 6px;
+      }
     }
   </style>
 
-  {/* dynamic transform / active-dot CSS */}
-  <style is:global set:html={injected}></style>
+  <script is:inline>
+    (() => {
+      const section = document.getElementById("testimonials");
+      if (!section) return;
+
+      const viewport = section.querySelector("[data-testi-viewport]");
+      if (!viewport) return;
+
+      const slides = Array.from(section.querySelectorAll("[data-testi-slide]"));
+      const dots = Array.from(section.querySelectorAll("[data-testi-dot]"));
+
+      if (!slides.length || !dots.length) return;
+
+      const activate = (index) => {
+        dots.forEach((dot, i) => {
+          dot.classList.toggle("is-active", i === index);
+        });
+      };
+
+      activate(0);
+
+      // Click on dot -> scroll to that slide
+      dots.forEach((dot, index) => {
+        dot.addEventListener("click", () => {
+          const target = slides[index];
+          if (!target) return;
+          target.scrollIntoView({
+            behavior: "smooth",
+            inline: "center",
+            block: "nearest",
+          });
+        });
+      });
+
+      // Observe which slide is most visible to highlight dot
+      if (typeof window !== "undefined" && "IntersectionObserver" in window) {
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                const idx = slides.indexOf(entry.target);
+                if (idx !== -1) activate(idx);
+              }
+            });
+          },
+          {
+            root: viewport,
+            threshold: 0.6,
+          }
+        );
+
+        slides.forEach((slide) => observer.observe(slide));
+      } else {
+        // Fallback: compute manually on scroll
+        viewport.addEventListener("scroll", () => {
+          const vpRect = viewport.getBoundingClientRect();
+          let bestIdx = 0;
+          let bestVisible = 0;
+
+          slides.forEach((slide, idx) => {
+            const rect = slide.getBoundingClientRect();
+            const visible =
+              Math.min(rect.right, vpRect.right) -
+              Math.max(rect.left, vpRect.left);
+            if (visible > bestVisible) {
+              bestVisible = visible;
+              bestIdx = idx;
+            }
+          });
+
+          activate(bestIdx);
+        });
+      }
+    })();
+  </script>
 </section>
