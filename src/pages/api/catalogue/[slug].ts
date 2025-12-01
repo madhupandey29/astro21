@@ -87,35 +87,9 @@ async function safeEmbedImage(pdf: PDFDocument, bytes: Uint8Array | null, hintEx
   }
 }
 
-/** Load logo bytes from local file system */
+/** Load logo bytes - HTTP only for deployment compatibility */
 async function fetchLogoBytes(origin: string): Promise<Uint8Array | null> {
-  // Try to load from file system first (works in SSR)
-  try {
-    const fs = await import('fs');
-    const path = await import('path');
-    
-    const localPaths = [
-      'public/images/brand/age.jpg',
-      'public/images/brand/my_logo.png',
-      'public/apple-touch-icon.png',
-    ];
-    
-    for (const localPath of localPaths) {
-      try {
-        const fullPath = path.resolve(process.cwd(), localPath);
-        if (fs.existsSync(fullPath)) {
-          const buffer = fs.readFileSync(fullPath);
-          return new Uint8Array(buffer);
-        }
-      } catch {
-        continue;
-      }
-    }
-  } catch {
-    // File system not available, try HTTP
-  }
-  
-  // Fallback to HTTP fetch from origin
+  // Use HTTP fetch (works in both dev and production)
   const httpCandidates = [
     `${origin}/images/brand/age.jpg`,
     `${origin}/images/brand/my_logo.png`,
@@ -233,20 +207,12 @@ export const GET: APIRoute = async ({ params, request }) => {
   /* ---------- HEADER: company name (right) + logo (left between lines) ---------- */
   const origin = new URL(request.url).origin;
   
-  // Load logo directly from file system
+  // Try to load logo (will work in runtime, not during build)
   let logoBytes: Uint8Array | null = null;
   try {
-    const fs = await import('fs');
-    const path = await import('path');
-    const logoPath = path.resolve(process.cwd(), 'public/images/brand/age.jpg');
-    if (fs.existsSync(logoPath)) {
-      const buffer = fs.readFileSync(logoPath);
-      logoBytes = new Uint8Array(buffer);
-    }
-  } catch (e) {
-    console.error('Failed to load logo from file system:', e);
-    // Fallback to HTTP
     logoBytes = await fetchLogoBytes(origin);
+  } catch (e) {
+    console.error('Logo loading failed:', e);
   }
 
   const headerY = pageH - 38;
