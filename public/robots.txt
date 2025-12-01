@@ -1,0 +1,13 @@
+# Allow all user agents
+User-agent: *
+
+# Disallow access to sensitive directories
+Disallow: /admin/
+Disallow: /private/
+Disallow: /config/
+
+# Disallow specific files
+Disallow: /secret-page.html
+
+# Sitemap location
+Sitemap: https://www.yourwebsite.com/sitemap.xml

@@ -1,0 +1,485 @@
+---
+export interface Props { cityCode: string }
+const { cityCode } = Astro.props;
+
+/* ===== Helpers & API (unchanged) ===== */
+const norm = (s: any) => String(s ?? '').trim().toLowerCase();
+const toId = (v: any) => (typeof v === 'string' ? v.trim() : v?._id ? String(v._id).trim() : '');
+async function fetchJson(url: string) { try { const r = await fetch(url,{headers:{Accept:'application/json'}}); if(!r.ok) return null; return await r.json(); } catch { return null; } }
+function cityTokenInSlug(slug: string, city: string) { const c = norm(city).replace(/\s+/g, '-'); const re = new RegExp(`(^|-)${c}(-|$)`, 'i'); return re.test(String(slug||'').toLowerCase()); }
+
+const API_ROOT = (import.meta.env.PUBLIC_API_BASE_URL ?? 'https://test.amrita-fashions.com/landing').replace(/\/+$/, '');
+const [seoJson, prodJson, locJson] = await Promise.all([
+  fetchJson(`${API_ROOT}/seo`),
+  fetchJson(`${API_ROOT}/product`),
+  fetchJson(`${API_ROOT}/locations`),
+]);
+
+const seos: any[] = Array.isArray(seoJson?.data) ? seoJson.data : [];
+const allProducts: any[] =
+  Array.isArray(prodJson?.data) ? prodJson.data :
+  Array.isArray(prodJson?.data?.products) ? prodJson.data.products :
+  Array.isArray(prodJson) ? prodJson : [];
+const rawLocs = locJson?.data?.locations ?? locJson?.data ?? locJson?.locations ?? [];
+const locs: any[] = Array.isArray(rawLocs) ? rawLocs : [];
+
+const targetLoc = locs.find((l) => norm(l?.slug) === norm(cityCode) || norm(l?.name) === norm(cityCode) || norm(l?.code) === norm(cityCode));
+const targetLocId = toId(targetLoc);
+const targetCode = norm(targetLoc?.code) || norm(cityCode);
+function sameLocation(s: any) {
+  const locId = toId(s?.location); const code = norm(s?.locationCode);
+  if (targetLocId && locId) return targetLocId === locId;
+  if (code && targetCode) return code === targetCode;
+  return cityTokenInSlug(String(s?.slug || ''), cityCode);
+}
+
+const productById = new Map<string, any>();
+for (const p of allProducts) { const pid = String(p?._id ?? '').trim(); if (pid) productById.set(pid, p); }
+const citySeoRows = seos.filter(sameLocation);
+const cityProducts: any[] = []; const seen = new Set<string>();
+for (const s of citySeoRows) { const pid = toId(s?.product); if (!pid || seen.has(pid)) continue; const prod = productById.get(pid); if (prod) { seen.add(pid); cityProducts.push(prod); } }
+
+let heroProduct: any = cityProducts[0] || null;
+let heroSeo: any = (heroProduct && citySeoRows.find((s) => toId(s.product) === String(heroProduct._id))) || citySeoRows[0] || null;
+if (!heroProduct && seos.length) { const firstSeo = seos[0]; heroProduct = productById.get(toId(firstSeo.product)) || null; heroSeo = firstSeo; }
+
+/* ===== View data ===== */
+const title = heroSeo?.productlocationtitle || 'Premium';
+const tagline = heroSeo?.productlocationtagline || 'Denim that Defines Durability and Style';
+const rating = Number(heroSeo?.rating_value ?? 0);
+const reviews = Number(heroSeo?.rating_count ?? 0);
+const img = heroProduct?.image3 || heroProduct?.image1 || heroProduct?.image2 || '/placeholder.svg?height=900&width=700';
+
+const content = heroProduct?.content?.name || heroProduct?.content || '—';
+const gsm = heroProduct?.gsm;
+const oz = heroProduct?.oz;
+const cm = heroProduct?.cm;
+const inch = heroProduct?.inch;
+const design = heroProduct?.design?.name || heroProduct?.design || '—';
+const subfinish = heroProduct?.subfinish?.name || heroProduct?.subfinish || '—';
+const substructure = heroProduct?.substructure?.name || heroProduct?.substructure || '—';
+const motif = heroProduct?.motif?.name || heroProduct?.motif || 'None/ NA';
+const colorsArr = Array.isArray(heroProduct?.color) ? heroProduct.color.map((c:any)=>c?.name || c) : [];
+const colorsText = colorsArr.join(', ') || heroProduct?.colors || '—';
+const leadtime = heroSeo?.leadtime ?? heroProduct?.leadtime;
+
+const weightText = (gsm ? `${gsm} gsm` : '') + (oz ? ` / ${oz} oz` : '');
+const widthText = (cm ? `${cm} cm` : '') + (inch ? ` / ${inch} inch` : '');
+const hasCityData = !!heroProduct;
+const catalogHref = `/api/catalogue/${encodeURIComponent(heroSeo?.slug || heroProduct?.slug || 'catalog')}`;
+const stars = Math.max(0, Math.min(5, Math.round(rating || 0)));
+---
+
+<section class="classic-hero" aria-labelledby="city-hero-title">
+  <div class="wrap">
+    <div class="left">
+      <h1 id="city-hero-title" class="ttl">{title}</h1>
+      <p class="tag">{tagline}</p>
+
+      <div class="spec-card" role="region" aria-label="Product specifications">
+        <div class="grid" id="specs-grid">
+          <div class="item spec-item"><span class="label">Content:</span><span class="val">{content}</span></div>
+          <div class="item spec-item"><span class="label">Weight:</span><span class="val">{weightText || '—'}</span></div>
+          <div class="item spec-item"><span class="label">Width:</span><span class="val">{widthText || '—'}</span></div>
+          <div class="item spec-item spec-item-collapsible"><span class="label">Finish:</span><span class="val">{subfinish}</span></div>
+          <div class="item spec-item spec-item-collapsible"><span class="label">Design:</span><span class="val">{design}</span></div>
+          <div class="item spec-item spec-item-collapsible"><span class="label">Motif:</span><span class="val">{motif}</span></div>
+          <div class="item spec-item spec-item-collapsible"><span class="label">Structure:</span><span class="val">{substructure}</span></div>
+          <div class="item spec-item spec-item-collapsible"><span class="label">Colors:</span><span class="val">{colorsText}</span></div>
+          <div class="item spec-item spec-item-collapsible"><span class="label">Lead time:</span><span class="val">{leadtime ? `${leadtime} days` : '—'}</span></div>
+        </div>
+        <button class="view-more-btn" id="viewMoreBtn" type="button" onclick="
+          const items = document.querySelectorAll('.spec-item-collapsible');
+          const btn = this;
+          const isExpanded = btn.getAttribute('data-expanded') === 'true';
+          items.forEach((item) => {
+            item.style.display = isExpanded ? 'none' : 'flex';
+          });
+          btn.textContent = isExpanded ? 'View More...' : 'View Less';
+          btn.setAttribute('data-expanded', !isExpanded);
+        " data-expanded="false">
+          View More...
+        </button>
+
+        <div class="card-meta">
+          <div class="meta">
+            <span class="label">Rating:</span>
+          <span class="stars" aria-hidden="true">
+  {Array.from({ length: 5 }).map((_, i) => (
+    <svg viewBox="0 0 20 20" width="18" height="18" class={i < stars ? 'star fill' : 'star'} aria-hidden="true">
+      <path d="M10 1.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8L10 14.5 4.8 17.5l1-5.8L1.5 7.6l5.8-.8L10 1.5z"/>
+    </svg>
+  ))}
+</span>
+<span class="sr-only">{`${stars} out of 5 stars`}</span>
+
+          </div>
+          <div class="meta"><span class="label">Reviews:</span><span class="val">{reviews || 0}</span></div>
+        </div>
+      </div>
+
+      <div class="cta">
+        <a href="#contact" class="btn primary">
+          <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18">
+            <path fill="currentColor" d="M21 2H3a1 1 0 0 0-1 1v18l4-4h14a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zm-1 14H6.41L5 17.59V4h15v12z"/>
+            <path fill="currentColor" d="M11 6h2v6h-2zm0 8h2v2h-2z"/>
+          </svg>
+          Get Quote Now
+        </a>
+        <a href="tel:+91-0000000000" class="btn outline">
+          <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M21 16.5v3a2 2 0 0 1-2.2 2 19.5 19.5 0 0 1-8.8-3.1 19.7 19.7 0 0 1-6-6 19.5 19.5 0 0 1-3.1-8.8A2 2 0 0 1 3.9 1.5h3a2 2 0 0 1 2 1.7c.1 1 .3 1.9.7 2.8a2 2 0 0 1-.4 2.1L8 9.7a16 16 0 0 0 6.3 6.3l1.6-1.6a2 2 0 0 1 2.1-.4c.9.3 1.8.5 2.8.7a2 2 0 0 1 1.2 1.8Z"/></svg>
+          Call Now
+        </a>
+       <a
+  href={catalogHref}
+  class="btn outline-mix"
+  target="_blank"
+  rel="noopener noreferrer"
+  download={`catalog-${(heroSeo?.slug || heroProduct?.slug || 'product')}.pdf`}
+  type="application/pdf"
+  aria-label="Download free product catalog (PDF)"
+  title="Download free product catalog (PDF)"
+>
+  <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18">
+    <path fill="currentColor" d="M5 20a2 2 0 0 1-2-2v-4h2v4h14v-4h2v4a2 2 0 0 1-2 2H5Zm7-4-5-5 1.4-1.4L11 12.2V4h2v8.2l2.6-2.6L17 11l-5 5Z"/>
+  </svg>
+  <span>Download Catalog</span>
+</a>
+
+      </div>
+
+      <ul class="trust">
+        <li>
+          <span class="checkmark">✓</span>
+          <span>Fast Delivery</span>
+        </li>
+        <li>
+          <span class="checkmark">✓</span>
+          <span>Quality Assured</span>
+        </li>
+        <li>
+          <span class="checkmark">✓</span>
+          <span>Expert Support</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="right">
+      {hasCityData && (
+        <figure class="img-card">
+          <img
+            src={img}
+            alt={heroProduct?.altimg1 || heroProduct?.name || 'Premium fabric image'}
+            width="520"
+            height="700"
+            loading="eager"
+            fetchpriority="high"
+          />
+        </figure>
+      )}
+    </div>
+  </div>
+</section>
+
+<style>
+:root{
+  --brand: var(--tp-theme-primary, #2C4C97);
+  --brand-2: var(--tp-theme-secondary, #163b7d);
+  --ink: var(--tp-text-1, #0F2235);
+  --ink-2: var(--tp-text-3, #475569);
+  --bg: #fff;
+  --muted: #e6ebf2;
+  --chip: #0bb67a;
+  --shadow: 0 12px 40px rgba(15,34,53,.12);
+}
+
+/* Tighter top padding so content starts higher */
+.classic-hero{
+  background: linear-gradient(180deg,#f7f9fc, #ffffff 40%);
+  padding: clamp(12px, 2vw, 24px) 16px 28px;
+}
+
+.wrap{
+  max-width: 1240px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.05fr .95fr;
+  gap: clamp(24px, 4vw, 56px);
+  align-items: start;
+}
+.sr-only{
+  position:absolute !important;
+  width:1px;height:1px;margin:-1px;padding:0;border:0;
+  overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);
+  white-space:nowrap;
+}
+
+.left { margin-top: clamp(4px, 1vh, 12px); } /* small optional nudge */
+
+/* Title & sub */
+.ttl{
+  font-size: clamp(28px, 5vw, 44px);
+  line-height: 1.15;
+  letter-spacing: -.02em;
+  color: var(--ink);
+  margin: 0 0 6px;
+  font-weight: 800;
+}
+.tag{
+  margin: 0 0 16px;
+  color: var(--ink-2);
+  font-size: clamp(14px, 1.8vw, 18px);
+}
+
+/* Specs card */
+.spec-card{
+  background: var(--bg);
+  border: 1px solid var(--muted);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: clamp(14px, 2vw, 18px);
+  position: relative;
+}
+.spec-card .grid{
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 18px;
+}
+.item{ display:flex; gap:8px; align-items: baseline; min-height: 28px; }
+.label{ color:#526581; font-weight: 700; font-size: 13px; }
+.val{ color: var(--ink); font-weight: 600; font-size: 15px; }
+.view-more-btn {
+  display: none;
+  margin: 12px auto 0;
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  color: var(--tp-theme-primary);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.view-more-btn:hover {
+  color: var(--brand-2);
+  text-decoration: underline;
+}
+.card-meta{ display:flex; gap: 28px; border-top: 1px dashed var(--muted); margin-top: 12px; padding-top: 10px; }
+.meta{ display:flex; align-items:center; gap:10px; }
+.stars{ display:inline-flex; gap:2px; }
+.star{ fill:none; stroke:#F59E0B; stroke-width:1.2; }
+.star.fill{ fill:#F59E0B; }
+
+/* CTA buttons with modern design */
+.cta{ 
+  display:flex; 
+  gap:12px; 
+  flex-wrap: wrap; 
+  margin-top: 20px;
+}
+.btn{
+  display:inline-flex; 
+  align-items:center; 
+  justify-content: center;
+  gap:10px;
+  padding: 14px 24px; 
+  font-weight: 700; 
+  font-size: 15px;
+  text-decoration: none; 
+  border: 2px solid transparent; 
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+.btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+.btn svg{ flex: 0 0 auto; position: relative; z-index: 1; }
+.btn span{ position: relative; z-index: 1; }
+
+.btn.primary{
+  background: linear-gradient(135deg, var(--tp-theme-primary), #3d5fb5);
+  color:#fff;
+  box-shadow: 0 4px 14px rgba(44,76,151,.25);
+}
+.btn.primary:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(44,76,151,.35);
+}
+.btn.primary:active{ 
+  transform: translateY(0); 
+  box-shadow: 0 2px 8px rgba(44,76,151,.2);
+}
+
+.btn.outline{
+  background: #fff;
+  border-color: var(--tp-grey-2);
+  color: var(--tp-text-1);
+  box-shadow: 0 2px 8px rgba(0,0,0,.05);
+}
+.btn.outline:hover{
+  transform: translateY(-2px);
+  border-color: var(--tp-theme-primary);
+  color: var(--tp-theme-primary);
+  box-shadow: 0 6px 16px rgba(44,76,151,.15);
+}
+.btn.outline:active{ 
+  transform: translateY(0); 
+}
+
+.btn.outline-mix{
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(22,163,74,.25);
+}
+.btn.outline-mix:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(22,163,74,.35);
+}
+.btn.outline-mix:active{ 
+  transform: translateY(0); 
+  box-shadow: 0 2px 8px rgba(22,163,74,.2);
+}
+
+/* Trust features with white badges and green checkmarks */
+.trust{ 
+  display:flex; 
+  gap:10px; 
+  flex-wrap:wrap; 
+  list-style:none; 
+  padding:0; 
+  margin:18px 0 0;
+  justify-content: flex-start;
+}
+.trust li{ 
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  color: var(--tp-text-1);
+  font-weight: 600;
+  font-size: 13px;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.trust li:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  border-color: #10b981;
+}
+.checkmark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #10b981;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 11px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.trust-icon {
+  flex-shrink: 0;
+  color: var(--tp-theme-primary);
+}
+.trust .dot{ 
+  width:10px; 
+  height:10px; 
+  border-radius:50%; 
+  background: linear-gradient(135deg, #10b981, #059669);
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+/* Mobile: Trust badges in one line */
+@media (max-width: 640px){
+  .trust {
+    overflow-x: auto;
+    gap: 8px;
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .trust::-webkit-scrollbar {
+    display: none;
+  }
+  .trust li {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+  .checkmark {
+    width: 14px;
+    height: 14px;
+    font-size: 10px;
+  }
+  
+  /* Hide collapsible items by default on mobile */
+  .spec-item-collapsible {
+    display: none;
+  }
+  
+  /* Show View More button only on mobile */
+  .view-more-btn {
+    display: block;
+  }
+}
+
+/* Right column image — smaller & capped height */
+.right{ display:flex; justify-content:flex-end; }
+.img-card{
+  margin:0;
+  width: 100%;
+  max-width: clamp(280px, 38vw, 520px);
+  aspect-ratio: 3/4;
+  max-height: 72vh;
+  background: linear-gradient(180deg,#ffffff, #f3f6fb);
+  border: 1px solid var(--muted);
+  border-radius: 28px;
+  box-shadow: 0 30px 70px rgba(22,59,125,.12);
+  overflow: hidden;
+}
+.img-card img{ width:100%; height:100%; object-fit: contain; display:block; }
+
+/* Responsive */
+@media (max-width: 1024px){
+  .wrap{ 
+    grid-template-columns: 1fr !important; 
+    grid-template-rows: auto auto !important;
+  }
+  .left { 
+    order: 2 !important; 
+  }
+  .right{ 
+    order: 1 !important;
+    justify-content:center; 
+  }
+  .img-card{ max-width: 100%; aspect-ratio: 16/10; max-height: 48vh; }
+}
+@media (max-width: 640px){
+  .spec-card .grid{ grid-template-columns: 1fr; }
+  .cta{ flex-direction: column; }
+  .img-card{ max-width: 100%; }
+}
+</style>

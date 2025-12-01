@@ -1,0 +1,286 @@
+---
+import "../styles/site-header.css";
+
+interface Props {
+  logoSrc?: string;
+  brand?: string;
+  ctaHref?: string;
+  ctaText?: string;
+}
+
+const {
+  logoSrc = "/images/brand/age.avif",
+  brand = "Amrita Fashions",
+  ctaHref = "#contact",
+  ctaText = "Get Quote Now",
+} = Astro.props as Props;
+---
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header" role="banner">
+  <!-- keep the checkbox at header root -->
+  <input id="nav-open" class="nav-toggle" type="checkbox" aria-hidden="true" />
+
+  <div class="container">
+    <div class="nav-shell">
+      <!-- Brand -->
+      <a href="/" class="brand" aria-label={brand}>
+        {logoSrc ? (
+          <img
+            src={logoSrc}
+            alt={brand}
+            class="logo"
+            width="160"
+            height="48"
+            fetchpriority="high"
+          />
+        ) : (
+          <span class="brand-text">{brand}</span>
+        )}
+      </a>
+
+      <!-- Center links -->
+      <nav class="nav-links" aria-label="Primary">
+        <a href="/" class="link is-active" aria-current="page">Home</a>
+        <a href="#aboutus" class="link">About</a>
+        <a href="#products" class="link">Products</a>
+        <a href="#testimonials" class="link">Testimonials</a>
+        <a href="#faq" class="link">FAQ</a>
+        <a href="#contact" class="link">Contact</a>
+      </nav>
+
+      <!-- Country + State + City Selector -->
+      <div class="country-selector">
+        <button
+          class="country-trigger"
+          aria-expanded="false"
+          aria-haspopup="true"
+          aria-label="Select country, state and city"
+          type="button"
+        >
+          <span class="flag-placeholder"></span>
+          <span class="country-code">IN</span>
+          <i class="chev" aria-hidden="true"></i>
+        </button>
+
+        <!-- Mega dropdown -->
+        <div
+          class="country-dropdown"
+          role="dialog"
+          aria-label="Country, state and city selection"
+        >
+          <div class="country-mega">
+                 <div class="country-mega-header">
+            <!-- Close button for desktop mega menu -->
+            <button
+              type="button"
+              class="country-mega-close"
+              aria-label="Close location selector"
+            >
+              <span class="country-mega-close-icon" aria-hidden="true"></span>
+            </button>
+
+            <div class="country-mega-header-top">
+              <span class="country-mega-title">CHOOSE YOUR LOCATION</span>
+              <span class="country-mega-sub">
+                Search by city, state or country
+              </span>
+            </div>
+
+            <!-- Global search: city / state / country -->
+            <div class="location-search-wrapper">
+              <div class="location-search-inner">
+                <span class="location-search-icon" aria-hidden="true"></span>
+                <input
+                  type="text"
+                  class="location-search-input"
+                  placeholder="Search by city, state or country"
+                  aria-label="Search by city, state or country"
+                />
+              </div>
+              <div
+                class="location-search-results"
+                aria-live="polite"
+              ></div>
+            </div>
+          </div>
+
+
+            <div class="country-mega-body">
+              <!-- Left: all countries -->
+              <div class="country-column">
+                <div class="column-header column-header--country">
+                  <span class="column-title column-title--country">
+                    Countries
+                  </span>
+                </div>
+
+                <div class="country-search-container">
+                  <input
+                    type="text"
+                    class="country-search"
+                    placeholder="Search country..."
+                    aria-label="Search countries"
+                  />
+                </div>
+                <div class="country-list">
+                  <!-- Countries will be populated by JavaScript -->
+                </div>
+              </div>
+
+              <!-- Middle: states of selected country -->
+              <div class="state-column">
+                <div class="state-column-header column-header">
+                  <span class="state-column-title column-title column-title--state">
+                    States in&nbsp;
+                    <span class="selected-country-name">—</span>
+                  </span>
+                </div>
+                <div class="state-list column-list">
+                  <!-- States will be populated by JavaScript -->
+                </div>
+              </div>
+
+              <!-- Right: cities of selected state -->
+              <div class="city-column">
+                <div class="city-column-header column-header">
+                  <span class="city-column-title column-title column-title--city">
+                    Cities in&nbsp;
+                    <span class="selected-state-name">—</span>
+                  </span>
+                </div>
+                <div class="city-list column-list">
+                  <!-- Cities will be populated by JavaScript -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <a class="btn cta" href={ctaHref}>
+        <span>{ctaText}</span>
+        <i class="chev" aria-hidden="true"></i>
+      </a>
+
+      <!-- Enhanced hamburger menu -->
+      <label
+        for="nav-open"
+        class="hamburger"
+        role="button"
+        tabindex="0"
+        aria-haspopup="menu"
+        aria-controls="mobile-menu"
+        aria-label="Toggle menu"
+      >
+        <span class="hamburger-box">
+          <span class="hamburger-inner"></span>
+        </span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Mobile overlay + drawer -->
+  <label for="nav-open" class="overlay" aria-hidden="true"></label>
+  <div
+    class="mobile-drawer"
+    id="mobile-menu"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Mobile navigation"
+  >
+    <nav class="mobile-nav" aria-label="Mobile">
+      <div class="mobile-nav-header">
+        <button class="mobile-back-btn" style="display: none;" aria-label="Go back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <span class="mobile-nav-title">Menu</span>
+        <label
+          for="nav-open"
+          class="close-menu"
+          role="button"
+          aria-label="Close menu"
+          aria-controls="mobile-menu"
+          tabindex="0"
+        >
+          <span class="close-menu-icon" aria-hidden="true"></span>
+        </label>
+      </div>
+
+      <!-- Main Menu -->
+      <div class="mobile-menu-main" data-step="main">
+        <a href="/" class="m-link is-active" aria-current="page">Home</a>
+        <a href="#products" class="m-link">Products</a>
+        <a href="#testimonials" class="m-link">Testimonials</a>
+        <a href="#faq" class="m-link">FAQ</a>
+        <a href="#contact" class="m-link">Contact</a>
+        
+        <!-- Location Selector Trigger -->
+        <button class="m-link m-location-trigger" data-action="open-location">
+          <span class="m-location-label">
+            <span class="flag-placeholder-mobile"></span>
+            <span class="country-code-mobile">IN</span>
+            Select Location
+          </span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 18l6-6-6-6"/>
+          </svg>
+        </button>
+
+        <a href={ctaHref} class="btn m-cta">
+          <span>{ctaText}</span><i class="chev" aria-hidden="true"></i>
+        </a>
+      </div>
+
+      <!-- Location Step 1: Countries -->
+      <div class="mobile-menu-step" data-step="countries" style="display: none;">
+        <div class="mobile-step-content">
+          <div class="mobile-search-box">
+            <input
+              type="text"
+              class="mobile-country-search"
+              placeholder="Search country..."
+              aria-label="Search countries"
+            />
+          </div>
+          <div class="mobile-country-list">
+            <!-- Countries will be populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Location Step 2: States -->
+      <div class="mobile-menu-step" data-step="states" style="display: none;">
+        <div class="mobile-step-content">
+          <div class="mobile-step-info">
+            <span class="mobile-step-label">States in </span>
+            <span class="mobile-selected-country"></span>
+          </div>
+          <div class="mobile-state-list">
+            <!-- States will be populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Location Step 3: Cities -->
+      <div class="mobile-menu-step" data-step="cities" style="display: none;">
+        <div class="mobile-step-content">
+          <div class="mobile-step-info">
+            <span class="mobile-step-label">Cities in </span>
+            <span class="mobile-selected-state"></span>
+          </div>
+          <div class="mobile-city-list">
+            <!-- Cities will be populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<!-- External JS for nav + location picker -->
+<script src="/js/site-header.js" defer></script>

@@ -1,0 +1,97 @@
+---
+import '../styles/theme.css';
+import Navbar from '../components/common/Navbar.astro';
+import Footer from '../components/common/Footer.astro';
+import PerfBooster from "../components/common/PerfBooster.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+
+const {
+  title = 'Landing',
+  description = ''
+} = Astro.props as { title?: string; description?: string };
+
+const reqUrl = new URL(Astro.request.url);
+const canonical = reqUrl.origin + reqUrl.pathname;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- Viewport default; pages can override in head slot -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Fallback title/description -->
+    <title>{title}</title>
+    <meta name="description" content={description} />
+
+    <!-- Canonical from live request URL -->
+    <link rel="canonical" href={canonical} />
+
+    <!-- Favicons -->
+    <link rel="icon" href="/favicon.svg" />
+
+    <!-- Non-blocking perf hints -->
+    <link rel="dns-prefetch" href="https://test.amrita-fashions.com" />
+    <link rel="preconnect" href="https://test.amrita-fashions.com" crossorigin />
+    <link rel="dns-prefetch" href="https://res.cloudinary.com" />
+    <link rel="preconnect" href="https://res.cloudinary.com" crossorigin />
+    <meta name="color-scheme" content="light dark" />
+
+    <!-- Load URL lock from external module (content won't show in View Source) -->
+    <link rel="modulepreload" href="/scripts/url-lock.mjs" />
+    <script type="module" src="/scripts/url-lock.mjs"></script>
+
+    <!-- Pages inject extra meta/link here -->
+    <slot name="head" />
+  </head>
+
+  <body class="page">
+    <!-- <Navbar /> -->
+    <SiteHeader />
+    <main id="main" class="container-fluid">
+      <slot />
+    </main>
+    <Footer />
+    <!-- Keep PerfBooster at the very end so it can't race the URL lock -->
+    <PerfBooster />
+    
+    <!-- Global smooth scroll handler for all anchor links -->
+    <script is:inline>
+      document.addEventListener('DOMContentLoaded', function() {
+        // Handle all clicks on anchor links
+        document.addEventListener('click', function(e) {
+          const target = e.target.closest('a');
+          if (!target) return;
+          
+          const href = target.getAttribute('href');
+          if (!href || !href.startsWith('#')) return;
+          
+          // Skip if already handled by site-header.js
+          if (target.closest('.nav-links, .mobile-nav, .age-footer, .cta, .m-cta')) return;
+          
+          const targetId = href.slice(1);
+          const targetElement = document.getElementById(targetId);
+          
+          if (targetElement) {
+            e.preventDefault();
+            
+            // Get header height for offset
+            const header = document.querySelector('.site-header');
+            const headerHeight = header ? header.offsetHeight : 96;
+            const offset = headerHeight + 40; // Extra padding to show heading
+            
+            const targetPosition = targetElement.getBoundingClientRect().top + window.pageYOffset - offset;
+            
+            window.scrollTo({
+              top: targetPosition,
+              behavior: 'smooth'
+            });
+            
+            // Update URL hash
+            history.pushState(null, '', href);
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

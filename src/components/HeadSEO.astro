@@ -1,0 +1,88 @@
+---
+/**
+ * Prints ONLY meta/link tags derived from your SEO API doc.
+ * Safe to include even if some fields are missing.
+ */
+interface Props {
+  seo?: Record<string, any> | null;
+  canonical?: string;
+}
+const { seo = null, canonical } = Astro.props as Props;
+
+// helpers
+const txt = (v: any, f?: string) => {
+  const s = (v ?? '').toString().trim();
+  return s || (f ?? '');
+};
+
+const title        = txt(seo?.title, 'Amrita Fashions — B2B Fabric Supply');
+const description  = txt(seo?.description, 'Premium fabrics for B2B buyers.');
+const keywords     = txt(seo?.keywords);
+const robots       = txt(seo?.robots);
+const author       = txt(seo?.author_name);
+const siteName     = txt(seo?.ogSiteName, 'Amrita Fashions');
+const ogType       = txt(seo?.ogType, 'website');
+const ogLocale     = txt(seo?.ogLocale, 'en_IN');
+const themeColor   = txt(seo?.themeColor);
+const viewport     = txt(seo?.viewport); // usually already present in layout
+const fmtDetect    = txt(seo?.formatDetection);
+const gVerify      = txt(seo?.googleSiteVerification);
+const msValidate   = txt(seo?.msValidate);
+const appleStatus  = txt(seo?.appleStatusBarStyle);
+const mobileCap    = txt(seo?.mobileWebAppCapable);
+
+const twitterCard  = txt(seo?.twitterCard);
+const twitterSite  = txt(seo?.twitterSite);
+const twitterTitle = txt(seo?.twitterTitle, title);
+const twitterDesc  = txt(seo?.twitterDescription, description);
+const twitterPlayer= txt(seo?.twitterPlayer);
+const tpW          = seo?.twitterPlayerWidth;
+const tpH          = seo?.twitterPlayerHeight;
+
+const ogVideoType  = txt(seo?.ogVideoType);
+const ogVideoW     = seo?.ogVideoWidth;
+const ogVideoH     = seo?.ogVideoHeight;
+
+const url = canonical ?? (new URL(Astro.request.url).origin + new URL(Astro.request.url).pathname);
+---
+<!-- Title override (keeps layout fallback if missing) -->
+<title>{title}</title>
+
+<!-- Basics -->
+<meta name="description" content={description} />
+{keywords && <meta name="keywords" content={keywords} />}
+{robots && <meta name="robots" content={robots} />}
+{author && <meta name="author" content={author} />}
+{themeColor && <meta name="theme-color" content={themeColor} />}
+{viewport && <meta name="viewport" content={viewport} />}
+{fmtDetect && <meta name="format-detection" content={fmtDetect} />}
+{gVerify && <meta name="google-site-verification" content={gVerify} />}
+{msValidate && <meta name="msvalidate.01" content={msValidate} />}
+{appleStatus && <meta name="apple-mobile-web-app-status-bar-style" content={appleStatus} />}
+{mobileCap && <meta name="mobile-web-app-capable" content={mobileCap} />}
+
+<!-- Canonical -->
+<link rel="canonical" href={url} />
+
+<!-- Open Graph -->
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:site_name" content={siteName} />
+<meta property="og:type" content={ogType} />
+<meta property="og:locale" content={ogLocale} />
+<meta property="og:url" content={url} />
+
+{ogVideoType && <meta property="og:video:type" content={ogVideoType} />}
+{typeof ogVideoW === 'number' && <meta property="og:video:width" content={String(ogVideoW)} />}
+{typeof ogVideoH === 'number' && <meta property="og:video:height" content={String(ogVideoH)} />}
+
+<!-- Twitter -->
+{twitterCard && <meta name="twitter:card" content={twitterCard} />}
+{twitterSite && <meta name="twitter:site" content={twitterSite} />}
+<meta name="twitter:title" content={twitterTitle} />
+<meta name="twitter:description" content={twitterDesc} />
+{twitterPlayer && <meta name="twitter:player" content={twitterPlayer} />}
+{typeof tpW === 'number' && <meta name="twitter:player:width" content={String(tpW)} />}
+{typeof tpH === 'number' && <meta name="twitter:player:height" content={String(tpH)} />}
+
+<!-- Deliberately skipping JSON-LD per your requirement: "ONLY meta/link tags". -->

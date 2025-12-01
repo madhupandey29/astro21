@@ -1,0 +1,264 @@
+---
+/**
+ * Floating WhatsApp FAB for Astro
+ *
+ * Props (all optional):
+ *   phone    : string  (fallback to import.meta.env.PUBLIC_WHATSAPP_NUMBER)
+ *   message  : string  (prefilled chat text)
+ *   label    : string  (aria-label & title)
+ *   tooltip  : string  (tooltip text on desktop)
+ */
+interface Props {
+  phone?: string;
+  message?: string;
+  label?: string;
+  tooltip?: string;
+}
+
+const {
+  phone,
+  message = "Hi! 👋 I'm interested in your fabric products. Could you please provide me with your collection, pricing, and MOQs?",
+  label = "Chat with us on WhatsApp",
+  tooltip = "Chat with us on WhatsApp",
+} = Astro.props as Props;
+
+// --- PHONE + URL LOGIC ----------------------------------------------------
+
+// raw phone: prop > env var > ""
+const RAW_PHONE = String(
+  phone ?? import.meta.env.PUBLIC_WHATSAPP_NUMBER ?? ""
+).trim();
+
+// wa.me expects digits only (no +, spaces, etc.)
+const DIGITS = RAW_PHONE.replace(/[^\d]/g, "");
+
+// if no digits -> wa.me will behave as "share/forward"
+const HAS_PHONE = DIGITS.length > 0;
+
+if (!HAS_PHONE) {
+  console.warn(
+    "[WhatsAppFab] No WhatsApp phone configured. " +
+      "Set PUBLIC_WHATSAPP_NUMBER in .env or pass the `phone` prop. " +
+      "Without it, WhatsApp shows the 'Forward to…' screen instead of direct chat."
+  );
+}
+
+const encoded = encodeURIComponent(message);
+
+// Direct chat when we have a number, otherwise share/forward link
+const href = HAS_PHONE
+  ? `https://wa.me/${DIGITS}?text=${encoded}`
+  : `https://wa.me?text=${encoded}`;
+---
+
+<!-- Wrapper -->
+<div class="wa-wrap">
+  <!-- Tooltip (desktop only via CSS) -->
+  <div class="wa-tip" role="tooltip" id="wa-tip">
+    {tooltip}
+  </div>
+
+  <!-- Button (anchor = no JS needed) -->
+  <a
+    href={href}
+    target="_blank"
+    rel="noopener noreferrer"
+    class="wa-fab"
+    aria-label={label}
+    title={label}
+  >
+    <span class="sr-only">{label}</span>
+
+    <!-- Ripple -->
+    <span class="wa-ripple" aria-hidden="true"></span>
+
+    <!-- Icon -->
+    <svg
+      class="wa-ico"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        fill="currentColor"
+        d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.74-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884"
+      />
+    </svg>
+
+    <!-- Notification dots -->
+    <span class="wa-dot wa-dot-ping" aria-hidden="true"></span>
+    <span class="wa-dot" aria-hidden="true"></span>
+  </a>
+</div>
+
+<style>
+  .wa-wrap {
+    position: fixed;
+    right: max(env(safe-area-inset-right), 16px);
+    bottom: max(env(safe-area-inset-bottom), 16px);
+    z-index: 60;
+    opacity: 0;
+    transform: translateY(12px);
+    animation: wa-in 0.6s ease-out 0.6s forwards;
+  }
+  @keyframes wa-in {
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .wa-fab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 999px;
+    color: #fff;
+    background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+    box-shadow: 0 10px 30px rgba(34, 197, 94, 0.45);
+    text-decoration: none;
+    transition: transform 0.25s ease, box-shadow 0.25s ease,
+      outline-color 0.2s;
+    outline: none;
+  }
+  .wa-fab:hover {
+    transform: scale(1.08);
+  }
+  .wa-fab:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.6);
+    outline-offset: 2px;
+  }
+
+  /* Bigger on md+ */
+  @media (min-width: 768px) {
+    .wa-fab {
+      width: 64px;
+      height: 64px;
+    }
+    .wa-ico {
+      width: 28px;
+      height: 28px;
+    }
+  }
+
+  .wa-ico {
+    width: 24px;
+    height: 24px;
+    z-index: 10;
+    position: relative;
+  }
+
+  /* Ripple */
+  .wa-ripple {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: #fff;
+    opacity: 0;
+    transform: scale(1);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+  }
+  .wa-fab:hover .wa-ripple {
+    opacity: 0.2;
+    transform: scale(1.5);
+  }
+
+  /* Dots + ping */
+  .wa-dot {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    background: #ef4444;
+  }
+  .wa-dot-ping {
+    animation: wa-ping 1.2s cubic-bezier(0, 0, 0.2, 1) infinite;
+    opacity: 0.65;
+  }
+  @keyframes wa-ping {
+    0% {
+      transform: scale(1);
+      opacity: 0.65;
+    }
+    80% {
+      transform: scale(2);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(2);
+      opacity: 0;
+    }
+  }
+
+  /* Tooltip (visible only on hover-capable screens) */
+  .wa-tip {
+    position: absolute;
+    right: 0;
+    bottom: 100%;
+    margin-bottom: 12px;
+    background: #111827;
+    color: #fff;
+    font-size: 13px;
+    line-height: 1;
+    padding: 8px 10px;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateY(6px);
+    pointer-events: none;
+  }
+  .wa-tip::after {
+    content: "";
+    position: absolute;
+    right: 18px;
+    top: 100%;
+    width: 10px;
+    height: 10px;
+    background: #111827;
+    transform: rotate(45deg);
+  }
+  @media (hover: hover) and (min-width: 640px) {
+    .wa-wrap:hover .wa-tip {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .wa-wrap {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+    .wa-fab {
+      transition: none;
+    }
+    .wa-fab:hover {
+      transform: none;
+    }
+    .wa-dot-ping {
+      animation: none;
+    }
+  }
+
+  /* Visually hidden */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+</style>

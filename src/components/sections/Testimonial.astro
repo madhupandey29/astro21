@@ -1,0 +1,623 @@
+---
+/* src/components/sections/Testimonials.astro */
+
+type TItem = {
+  id: number;
+  review: number;
+  desc: string;
+  industry: string;
+  location: string;
+  tags: string[];
+};
+
+const DATA: TItem[] = [
+  {
+    id: 1,
+    review: 5,
+    desc: "Fabric inspection reports and test certificates provided on request. Helped us pass third-party audits without issues.",
+    industry: "Export Compliance Partner",
+    location: "Jaipur, RJ",
+    tags: ["Reports", "Certificates", "Compliance"],
+  },
+  {
+    id: 2,
+    review: 4.5,
+    desc: "On-time dispatch for 10K+ meters/month with stable hand-feel on peach finish poplin. Shade lots stayed consistent across repeats.",
+    industry: "Garment Exporter",
+    location: "Tirupur, TN",
+    tags: ["On-time Delivery", "Peach Finish", "Bulk Orders"],
+  },
+  {
+    id: 3,
+    review: 5,
+    desc: "Uniform shirting quality is predictable. GSM and shrinkage are under control which reduced our returns dramatically.",
+    industry: "Uniform Manufacturer",
+    location: "Ludhiana, Punjab",
+    tags: ["GSM Control", "Shrinkage", "Low Returns"],
+  },
+  {
+    id: 4,
+    review: 4.8,
+    desc: "Shade cards and lab dips matched our brand palette very closely, even across repeat orders. Saved time on approvals.",
+    industry: "Domestic Fashion Brand",
+    location: "Mumbai, MH",
+    tags: ["Shade Cards", "Lab Dips", "Brand Consistency"],
+  },
+  {
+    id: 5,
+    review: 4.7,
+    desc: "Sampling yardage reaches our studio in 48–72 hours. Designers can lock fabrics early and avoid last-minute fire-fighting.",
+    industry: "Buying House",
+    location: "Delhi NCR",
+    tags: ["Fast Sampling", "Designer Support", "Pre-Production"],
+  },
+  {
+    id: 6,
+    review: 5,
+    desc: "For our hospital linen program, the shrinkage and color fastness reports were accurate. No complaints from any of our institutional clients.",
+    industry: "Institutional Supplier",
+    location: "Ahmedabad, GJ",
+    tags: ["Hospital Linen", "Color Fastness", "Zero Complaints"],
+  },
+];
+
+const ITEMS: TItem[] = DATA;
+
+const metrics = [
+  { k: "REPEAT ORDERS", v: "96%" },
+  { k: "ON-TIME", v: "99.2%" },
+  { k: "MONTHLY VOLUME", v: "10K+" },
+  { k: "CLIENT RETENTION", v: "98%" },
+];
+
+const TOTAL = ITEMS.length;
+---
+
+<section
+  id="testimonials"
+  class="age-testi full-bleed compact"
+  aria-labelledby="age-testi-title"
+>
+  <div class="age-wrap">
+    <div class="age-head">
+      <div class="eyebrow">WHAT OUR CUSTOMERS SAY</div>
+      <span class="badge"><i></i>Verified Industry Feedback</span>
+      <h2 id="age-testi-title" class="title">Trusted by Fabric Buyers</h2>
+    </div>
+
+    <div class="slider-wrap">
+      <div
+        class="carousel"
+        aria-roledescription="carousel"
+        aria-label="Customer testimonials"
+      >
+        <div class="viewport" data-testi-viewport>
+          <ul class="slides" role="list">
+            {ITEMS.map((item, index) => (
+              <li
+                class="slide"
+                data-testi-slide
+                data-index={index}
+                aria-roledescription="slide"
+                aria-label={`Slide ${index + 1} of ${TOTAL}`}
+              >
+                <article class="card">
+                  <div class="top">
+                    <div
+                      class="stars"
+                      role="img"
+                      aria-label={`${Number(
+                        item.review.toFixed(1)
+                      )} out of 5 stars`}
+                    >
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <svg
+                          aria-hidden="true"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill={
+                            i < Math.floor(item.review)
+                              ? "currentColor"
+                              : "none"
+                          }
+                          stroke="currentColor"
+                        >
+                          <path
+                            d="M12 2l3.09 6.26L22 9.27l-5 4.85L18.18 22 12 18.77 5.82 22 7 14.12l-5-4.85 6.91-1.01L12 2z"
+                          />
+                        </svg>
+                      ))}
+                    </div>
+
+                    <span class="verified">
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M12 2l3.09 6.26L22 9.27l-5 4.85L18.18 22 12 18.77 5.82 22 7 14.12l-5-4.85 6.91-1.01L12 2z"
+                        />
+                      </svg>
+                      VERIFIED
+                    </span>
+                  </div>
+
+                  <p class="quote">“{item.desc}”</p>
+
+                  <div class="client">
+                    <div class="industry">{item.industry}</div>
+                    <div class="dot"></div>
+                    <div class="loc">{item.location}</div>
+                  </div>
+
+                  <div class="tags" aria-label="tags">
+                    {item.tags.slice(0, 3).map((t) => (
+                      <span class="chip">{t}</span>
+                    ))}
+                  </div>
+                </article>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Dots */}
+        <div class="dots" aria-label="carousel pagination">
+          {Array.from({ length: TOTAL }).map((_, i) => (
+            <button
+              type="button"
+              class={`dot ${i === 0 ? "is-active" : ""}`}
+              data-testi-dot
+              aria-label={`Go to slide ${i + 1}`}
+            ></button>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    <div class="metrics">
+      {metrics.map((m) => (
+        <div class="mcard">
+          <div class="val">{m.v}</div>
+          <div class="key">{m.k}</div>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <style>
+    /* Full width band */
+    .full-bleed {
+      width: 100vw;
+      margin-left: calc(50% - 50vw);
+    }
+
+    .age-testi {
+      background: var(--tp-theme-1, #112338);
+      padding: clamp(22px, 3.5vw, 36px) 0 clamp(18px, 3vw, 28px);
+      color: var(--tp-common-white, #fff);
+      --gold: var(--tp-theme-secondary, #d6a74b);
+      --blue: var(--tp-theme-primary, #2c4c97);
+      --soft: rgba(255, 255, 255, 0.75);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .age-wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+    @media (max-width: 480px) {
+      .age-wrap {
+        padding-inline: 12px;
+      }
+    }
+
+    .age-head {
+      text-align: center;
+      margin-bottom: 14px;
+    }
+    .eyebrow {
+      color: var(--soft);
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      font-size: 0.68rem;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      color: var(--gold);
+      border: 1px solid color-mix(in srgb, var(--gold) 26%, transparent);
+      background: color-mix(in srgb, var(--gold) 10%, transparent);
+      font-weight: 700;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+    }
+    .badge i {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--gold);
+    }
+    .title {
+      margin-top: 8px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+      font-size: clamp(24px, 2.6vw, 34px);
+    }
+    @media (max-width: 480px) {
+      .title {
+        font-size: 1.4rem;
+      }
+      .badge {
+        font-size: 0.6rem;
+        padding: 4px 8px;
+      }
+    }
+
+    /* Cards */
+    .card {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background: #fff;
+      color: #0f2235;
+      border-radius: 14px;
+      padding: clamp(14px, 3vw, 18px);
+      border: 1px solid color-mix(in srgb, #e5ebf3 45%, transparent);
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.14);
+      position: relative;
+      box-sizing: border-box;
+      min-height: 220px;
+      max-width: 380px;
+      width: 100%;
+      margin-inline: auto;
+    }
+    .card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 14px;
+      box-shadow: inset 0 0 0 1px
+        color-mix(in srgb, var(--gold) 18%, transparent);
+      pointer-events: none;
+    }
+    @media (max-width: 480px) {
+      .card {
+        max-width: 360px;
+        padding: 14px 14px 12px;
+      }
+    }
+    @media (min-width: 640px) {
+      .card {
+        max-width: none;
+      }
+    }
+
+    .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .stars {
+      color: var(--gold);
+      display: flex;
+      gap: 1px;
+    }
+    .verified {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      padding: 5px 8px;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: 0.7rem;
+      line-height: 1;
+      background: var(--AGE-GOLD-BG-SOFT, #fff4cc);
+      border: 1px solid var(--tp-theme-secondary, #d6a74b);
+      color: var(--AGE-GOLD-INK-AA, #6b5316);
+      white-space: nowrap;
+    }
+    .verified svg {
+      width: 12px;
+      height: 12px;
+      fill: currentColor;
+      display: block;
+    }
+
+    .quote {
+      margin: 10px 0 12px;
+      line-height: 1.5;
+      font-weight: 500;
+      min-height: 56px;
+      font-size: 0.9rem;
+    }
+    @media (max-width: 420px) {
+      .quote {
+        min-height: 0;
+        font-size: 0.86rem;
+      }
+    }
+
+    .client {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+      row-gap: 4px;
+    }
+    .industry {
+      color: var(--blue);
+      font-weight: 800;
+      font-size: 0.95rem;
+    }
+    .loc {
+      color: #5c6a80;
+      font-weight: 700;
+      font-size: 0.82rem;
+    }
+    .dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 999px;
+      background: #cfd6e4;
+      opacity: 0.8;
+    }
+
+    .tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 2px;
+    }
+    .chip {
+      padding: 4px 8px;
+      border-radius: 16px;
+      background: #f3f6fb;
+      border: 1px solid #e1e7f0;
+      color: #4b5a70;
+      font-weight: 700;
+      font-size: 0.72rem;
+    }
+    .chip:hover {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #fff;
+    }
+    @media (max-width: 420px) {
+      .chip {
+        font-size: 0.68rem;
+        padding: 3px 7px;
+      }
+    }
+
+    /* Metrics */
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .mcard {
+      text-align: center;
+      border-radius: 10px;
+      background: #00000033;
+      padding: 12px 10px;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1);
+      color: var(--gold);
+    }
+    .mcard .val {
+      font-weight: 900;
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+    .mcard .key {
+      font-weight: 800;
+      font-size: 0.74rem;
+      letter-spacing: 0.04em;
+      color: color-mix(in srgb, var(--gold) 84%, #fff);
+    }
+    @media (max-width: 639.98px) {
+      .metrics {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .mcard .val {
+        font-size: 17px;
+      }
+    }
+    @media (max-width: 400px) {
+      .metrics {
+        gap: 8px;
+      }
+      .mcard {
+        padding: 10px 8px;
+      }
+      .mcard .val {
+        font-size: 16px;
+      }
+      .mcard .key {
+        font-size: 0.7rem;
+      }
+    }
+    @media (max-width: 360px) {
+      .metrics {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ===== Swipe carousel (scroll-snap) ===== */
+    .slider-wrap {
+      margin-top: 6px;
+    }
+
+    .carousel {
+      position: relative;
+    }
+
+    .viewport {
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      padding-block: 4px;
+      margin-inline: -8px;
+      padding-inline: 8px;
+
+      /* hide scrollbar but keep scroll */
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE/Edge */
+    }
+    .viewport::-webkit-scrollbar {
+      display: none; /* Chrome/Safari */
+    }
+
+    .slides {
+      display: flex;
+      flex-wrap: nowrap; /* IMPORTANT: single row always */
+      --gap: clamp(0.5rem, 1.6vw, 0.75rem);
+      gap: var(--gap);
+      padding: 4px 0 44px;
+      list-style: none;
+      margin: 0;
+      align-items: stretch;
+    }
+
+    .slide {
+      flex: 0 0 100%;
+      scroll-snap-align: center;
+      display: flex;
+    }
+
+    /* Tablet: 2 cards visible */
+    @media (min-width: 640px) {
+      .slide {
+        flex: 0 0 50%;
+      }
+    }
+
+    /* Desktop: 3 cards visible */
+    @media (min-width: 1024px) {
+      .slide {
+        flex: 0 0 calc(100% / 3);
+      }
+    }
+
+    .dots {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 10px;
+      display: flex;
+      gap: 8px;
+      z-index: 3;
+    }
+    .dots .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      border: none;
+      padding: 0;
+      background: rgba(255, 255, 255, 0.35);
+      cursor: pointer;
+      outline: 2px solid transparent;
+    }
+    .dots .dot.is-active {
+      background: var(--gold);
+      transform: scale(1.2);
+    }
+    .dots .dot:focus-visible {
+      outline-color: var(--gold);
+    }
+
+    @media (max-width: 360px) {
+      .dots {
+        bottom: 8px;
+        gap: 6px;
+      }
+    }
+  </style>
+
+  <script is:inline>
+    (() => {
+      const section = document.getElementById("testimonials");
+      if (!section) return;
+
+      const viewport = section.querySelector("[data-testi-viewport]");
+      if (!viewport) return;
+
+      const slides = Array.from(section.querySelectorAll("[data-testi-slide]"));
+      const dots = Array.from(section.querySelectorAll("[data-testi-dot]"));
+
+      if (!slides.length || !dots.length) return;
+
+      const activate = (index) => {
+        dots.forEach((dot, i) => {
+          dot.classList.toggle("is-active", i === index);
+        });
+      };
+
+      activate(0);
+
+      // Click on dot -> scroll to that slide
+      dots.forEach((dot, index) => {
+        dot.addEventListener("click", () => {
+          const target = slides[index];
+          if (!target) return;
+          target.scrollIntoView({
+            behavior: "smooth",
+            inline: "center",
+            block: "nearest",
+          });
+        });
+      });
+
+      // Observe which slide is most visible to highlight dot
+      if (typeof window !== "undefined" && "IntersectionObserver" in window) {
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                const idx = slides.indexOf(entry.target);
+                if (idx !== -1) activate(idx);
+              }
+            });
+          },
+          {
+            root: viewport,
+            threshold: 0.6,
+          }
+        );
+
+        slides.forEach((slide) => observer.observe(slide));
+      } else {
+        // Fallback: compute manually on scroll
+        viewport.addEventListener("scroll", () => {
+          const vpRect = viewport.getBoundingClientRect();
+          let bestIdx = 0;
+          let bestVisible = 0;
+
+          slides.forEach((slide, idx) => {
+            const rect = slide.getBoundingClientRect();
+            const visible =
+              Math.min(rect.right, vpRect.right) -
+              Math.max(rect.left, vpRect.left);
+            if (visible > bestVisible) {
+              bestVisible = visible;
+              bestIdx = idx;
+            }
+          });
+
+          activate(bestIdx);
+        });
+      }
+    })();
+  </script>
+</section>

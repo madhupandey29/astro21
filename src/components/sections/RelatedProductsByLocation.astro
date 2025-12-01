@@ -1,0 +1,1251 @@
+---
+import { Fragment } from "astro/jsx-runtime";
+
+interface Product {
+  _id?: string;
+  id?: string;
+  name?: string;
+  slug?: string;
+  seoSlug?: string;
+  sku?: string;
+  salesPrice?: number | string;
+  purchasePrice?: number | string;
+  quantity?: number;
+  leadtime?: number | string;
+  rating_value?: number;
+  rating_count?: number;
+  productdescription?: string;
+  description?: string;
+  altimg1?: string;
+  img?: string;
+  image1?: string;
+  image2?: string;
+  category?: { name: string } | string;
+  location?: any;
+}
+
+interface SeoDoc {
+  location?: {
+    _id?: string;
+    name?: string;
+    slug?: string;
+    city?: {
+      name?: string;
+      slug?: string;
+    };
+    state?: {
+      name?: string;
+      slug?: string;
+      country?: {
+        slug?: string;
+        name?: string;
+      };
+    };
+    country?: {
+      slug?: string;
+      name?: string;
+    };
+  };
+  product?: Product;
+}
+
+interface Props {
+  currentSlug?: string; // product slug on /:productSlug/in/...
+  cityCode?: string; // when on city page
+  seoDoc?: SeoDoc | null;
+  title?: string;
+  subtitle?: string;
+  products?: any[]; // optional pre-fetched related SEO docs OR products
+  currentCountry?: string; // current country from geo location
+  geoLocation?: any; // full geo location data
+}
+
+const {
+  currentSlug,
+  cityCode,
+  seoDoc = null,
+  title = "Explore Our Fabric Catalog",
+  subtitle,
+  products: initialProducts = [],
+  currentCountry = "india",
+  geoLocation = null,
+} = Astro.props as Props;
+
+/* ================= Helpers ================= */
+
+const norm = (s: any): string => String(s ?? "").trim().toLowerCase();
+
+const toId = (v: any): string => {
+  if (typeof v === "string") return v.trim();
+  if (v && typeof v === "object" && "id" in v) {
+    return String((v as { id: any }).id).trim();
+  }
+  if (v && typeof v === "object" && "_id" in v) {
+    return String((v as { _id: any })._id).trim();
+  }
+  return "";
+};
+
+const slugifyForPath = (value: string): string =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/['']/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const BASE = (import.meta.env.BASE_URL ?? "/").toString().replace(/\/+$/, "");
+
+async function fetchJson(url: string) {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        Accept: "application/json",
+        "Cache-Control": "no-cache",
+      },
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+const reqUrl = new URL(Astro.request.url);
+
+/* ================= API roots ================= */
+
+const API_ROOT = "https://test.amrita-fashions.com/api";
+const SEO_API = `${API_ROOT}/seo`;
+
+/* ================= Target location / product ================= */
+
+let targetLocationId = "";
+let targetCity = "";
+let currentProductId = "";
+
+// Prefer location + product from seoDoc passed by page
+if (seoDoc) {
+  targetLocationId = toId(seoDoc.location);
+  targetCity = norm(seoDoc.location?.city?.name || seoDoc.location?.name || "");
+  currentProductId = toId(seoDoc.product);
+} else if (currentSlug) {
+  // Fallback: fetch SEO for current slug using detail endpoint WITHOUT location filter
+  try {
+    const seoUrl = `${SEO_API}/${encodeURIComponent(currentSlug)}/india`;
+    const seoResponse = await fetchJson(seoUrl);
+
+    if (
+      seoResponse?.success &&
+      Array.isArray(seoResponse.data) &&
+      seoResponse.data.length > 0
+    ) {
+      const currentSeo = seoResponse.data[0];
+      targetLocationId = toId(currentSeo.location);
+      targetCity = norm(
+        currentSeo.location?.city?.name || currentSeo.location?.name || ""
+      );
+      currentProductId = toId(currentSeo.product);
+    }
+  } catch (error) {
+    console.error("Error fetching SEO data for related products:", error);
+  }
+} else if (cityCode) {
+  targetCity = norm(cityCode);
+}
+
+/* ================= URL Pattern Detection ================= */
+
+// Check if current URL is /:productSlug (without /in/ segment) or /:productSlug/in/...
+const path = reqUrl.pathname.replace(/^\/+|\/+$/g, "");
+const segments = path ? path.split("/") : [];
+const hasInSegment = segments.includes("in");
+const isProductOnlyUrl = currentSlug && !hasInSegment;
+
+// Extract location from URL if available
+let urlCountry = currentCountry;
+let urlState = "";
+let urlCity = "";
+let urlLocation = "";
+
+if (hasInSegment) {
+  const inIndex = segments.indexOf("in");
+  urlCountry = segments[inIndex + 1] || currentCountry;
+  urlState = segments[inIndex + 2] || "";
+  urlCity = segments[inIndex + 3] || "";
+  urlLocation = segments[inIndex + 4] || "";
+}
+
+// Determine target country for filtering - this is the key filter
+const targetCountry = hasInSegment ? urlCountry : currentCountry;
+
+/* ================= Geo Location Priority ================= */
+
+// Set geo location priority (India/Gujarat/Ahmedabad)
+const geoPriority = {
+  country: "india",
+  state: "gujarat",
+  city: "ahmedabad",
+  area: "isanpur", // default area
+};
+
+// Use geo location from props if available, otherwise use default priority
+const priorityCountry = geoLocation?.countrySlug || geoPriority.country;
+const priorityState = geoLocation?.stateSlug || geoPriority.state;
+const priorityCity = geoLocation?.citySlug || geoPriority.city;
+const priorityArea = geoLocation?.areaSlug || geoPriority.area;
+
+console.log(
+  `Geo Location Priority: ${priorityCountry}/${priorityState}/${priorityCity}/${priorityArea}`
+);
+
+/* ================= Get related products - STRICT COUNTRY FILTER ================= */
+
+let relatedRaw: any[] = initialProducts as any[];
+
+// Helper function to extract country from product
+const getProductCountry = (product: any): string => {
+  const loc = product.location || product;
+  return norm(loc?.country?.name || loc?.state?.country?.name || "india");
+};
+
+// Helper function to extract state from product
+const getProductState = (product: any): string => {
+  const loc = product.location || product;
+  return norm(loc?.state?.name || "");
+};
+
+// Helper function to extract city from product
+const getProductCity = (product: any): string => {
+  const loc = product.location || product;
+  return norm(loc?.city?.name || "");
+};
+
+// Helper function to extract area from product
+const getProductArea = (product: any): string => {
+  const loc = product.location || product;
+  return norm(loc?.name || "");
+};
+
+// If products not pre-passed from page, fetch them here
+if (relatedRaw.length === 0) {
+  try {
+    const publicResponse = await fetchJson(
+      "https://test.amrita-fashions.com/api/seo/public"
+    );
+    if (publicResponse?.data) {
+      const allData = Array.isArray(publicResponse.data)
+        ? publicResponse.data
+        : [publicResponse.data];
+
+      // STRICT FILTER: Only include products from same country
+      relatedRaw = allData.filter((product: any) => {
+        const productId = toId(product.product || product);
+        const productCountry = getProductCountry(product);
+
+        // Exclude current product and STRICTLY include only same country products
+        const isSameCountry = productCountry === norm(targetCountry);
+        const isNotCurrent = productId !== currentProductId;
+
+        return isSameCountry && isNotCurrent;
+      });
+
+      console.log(`Filtered ${relatedRaw.length} products for country: ${targetCountry}`);
+    }
+  } catch (error) {
+    console.error("Error fetching public SEO data:", error);
+  }
+} else {
+  // If products are pre-passed, still filter them by country
+  relatedRaw = initialProducts.filter((product: any) => {
+    const productId = toId(product.product || product);
+    const productCountry = getProductCountry(product);
+    return productId !== currentProductId && productCountry === norm(targetCountry);
+  });
+}
+
+// Continue with existing filtering logic...
+const seoRows: any[] = relatedRaw;
+
+const currentLocationId = targetLocationId;
+const currentProdId = currentProductId;
+
+// Optional filter: drop exact current product+location from related list
+const filteredRows = seoRows.filter((row: any) => {
+  const prodId = toId(row.product || row);
+  const locId = toId(row.location || row.locationId);
+  if (currentProdId && currentLocationId) {
+    return !(prodId === currentProdId && locId === currentLocationId);
+  }
+  return true;
+});
+
+// Normalise into product cards
+type ProcessedProduct = {
+  id: string;
+  title: string;
+  productdescription: string;
+  price: number | string | null;
+  originalPrice: number | string | null;
+  image: string;
+  rating: number;
+  ratingCount: number;
+  slug: string;
+  inStock: boolean;
+  leadTime: string;
+  category: string;
+  locationLabel?: string;
+  countrySlug?: string;
+  stateSlug?: string;
+  citySlug?: string;
+  locationSlug?: string;
+  countryName?: string;
+  stateName?: string;
+  cityName?: string;
+  locationName?: string;
+  distanceScore?: number; // For location-based sorting
+  geoPriorityScore?: number; // New: Score based on geo location priority
+};
+
+const processedProducts: ProcessedProduct[] = filteredRows.map((row: any) => {
+  const p: any = row.product || row;
+  const loc: any = row.location || p.location || null;
+
+  const categoryName =
+    typeof p.category === "string" ? p.category : p.category?.name || "Fabric";
+
+  const cityName = loc?.city?.name || "";
+  const areaName = loc?.name || "";
+  const stateName = loc?.state?.name || "";
+  const countryName = loc?.country?.name || loc?.state?.country?.name || "";
+
+  let locationLabel = "";
+
+  if (cityName && areaName && norm(cityName) !== norm(areaName)) {
+    locationLabel = `${cityName} / ${areaName}`;
+  } else {
+    locationLabel = cityName || areaName || targetCity || "";
+  }
+
+  const hasLoc = !!loc;
+
+  const countrySlug =
+    (hasLoc &&
+      slugifyForPath(
+        loc?.country?.slug ||
+          loc?.state?.country?.slug ||
+          loc?.country?.name ||
+          loc?.state?.country?.name ||
+          ""
+      )) ||
+    undefined;
+
+  const stateSlug =
+    (hasLoc && slugifyForPath(loc?.state?.slug || loc?.state?.name || "")) ||
+    undefined;
+
+  const citySlug =
+    (hasLoc && slugifyForPath(loc?.city?.slug || loc?.city?.name || "")) ||
+    undefined;
+
+  const locationSlug =
+    (hasLoc && slugifyForPath(loc?.slug || loc?.name || "")) || undefined;
+
+  // Calculate distance score for location-based sorting
+  let distanceScore = 0;
+
+  // Same state gets higher score
+  if (stateSlug && urlState && norm(stateSlug) === norm(urlState)) {
+    distanceScore += 3;
+  }
+
+  // Same city gets even higher score
+  if (citySlug && urlCity && norm(citySlug) === norm(urlCity)) {
+    distanceScore += 5;
+  }
+
+  // Same location gets highest score
+  if (locationSlug && urlLocation && norm(locationSlug) === norm(urlLocation)) {
+    distanceScore += 8;
+  }
+
+  // NEW: Calculate geo priority score based on India/Gujarat/Ahmedabad priority
+  let geoPriorityScore = 0;
+
+  // Check if product matches geo location priority
+  const productCountry = norm(countryName);
+  const productState = norm(stateName);
+  const productCity = norm(cityName);
+  const productArea = norm(areaName);
+
+  // Country match (India)
+  if (productCountry === norm(priorityCountry)) {
+    geoPriorityScore += 10;
+
+    // State match (Gujarat)
+    if (productState === norm(priorityState)) {
+      geoPriorityScore += 20;
+
+      // City match (Ahmedabad)
+      if (productCity === norm(priorityCity)) {
+        geoPriorityScore += 30;
+
+        // Area match (Isanpur)
+        if (productArea === norm(priorityArea)) {
+          geoPriorityScore += 40;
+        }
+      }
+    }
+  }
+
+  return {
+    id: String(p._id || p.id || "").trim(),
+    title: p.name || "Product",
+    productdescription: p.productdescription || p.description || "",
+    price: p.salesPrice ?? null,
+    originalPrice: p.purchasePrice ?? null,
+    image: p.image3 || p.image1 || p.image2 || "/images/placeholder-800x600.svg",
+    rating: Number(p.rating_value ?? 0),
+    ratingCount: Number(p.rating_count ?? 0),
+    slug: p.slug || "",
+    inStock: (p.quantity ?? 0) > 0,
+    leadTime: p.leadtime ? `${p.leadtime} days` : "Contact for lead time",
+    category: categoryName,
+    locationLabel: locationLabel || undefined,
+    countrySlug,
+    stateSlug,
+    citySlug,
+    locationSlug,
+    countryName: countryName || undefined,
+    stateName: stateName || undefined,
+    cityName: cityName || undefined,
+    locationName: areaName || undefined,
+    distanceScore,
+    geoPriorityScore, // Include geo priority score
+  };
+});
+
+/* ================= Sort products by geo location priority ================= */
+
+// Sort products: geo priority first, then location proximity, then rating
+const sortedProducts = [...processedProducts].sort((a, b) => {
+  // First by geo priority score (higher score = better geo match)
+  if (a.geoPriorityScore !== b.geoPriorityScore) {
+    return b.geoPriorityScore - a.geoPriorityScore;
+  }
+
+  // Then by distance score (higher score = closer location)
+  if (a.distanceScore !== b.distanceScore) {
+    return b.distanceScore - a.distanceScore;
+  }
+
+  // Then by rating (higher rating first)
+  if (a.rating !== b.rating) {
+    return b.rating - a.rating;
+  }
+
+  // Then by stock status (in stock first)
+  if (a.inStock !== b.inStock) {
+    return a.inStock ? -1 : 1;
+  }
+
+  return 0;
+});
+
+/* ================= UI limits & mapping ================= */
+
+const MAX_INITIAL_VISIBLE = 3; // Show only 3 products initially
+const totalProducts = sortedProducts.length;
+const showLoadMore = totalProducts > MAX_INITIAL_VISIBLE;
+
+// Count products by location type for display
+const sameLocationProducts = sortedProducts.filter(
+  (p) => (p.distanceScore ?? 0) >= 8
+).length;
+const sameCityProducts = sortedProducts.filter(
+  (p) => (p.distanceScore ?? 0) >= 5 && (p.distanceScore ?? 0) < 8
+).length;
+const sameStateProducts = sortedProducts.filter(
+  (p) => (p.distanceScore ?? 0) >= 3 && (p.distanceScore ?? 0) < 5
+).length;
+const sameCountryProducts = sortedProducts.filter(
+  (p) => (p.distanceScore ?? 0) < 3
+).length;
+
+// Count products by geo priority
+const geoPriorityProducts = sortedProducts.filter(
+  (p) => (p.geoPriorityScore ?? 0) >= 60
+).length; // Ahmedabad + area
+const geoCityProducts = sortedProducts.filter(
+  (p) => (p.geoPriorityScore ?? 0) >= 30 && (p.geoPriorityScore ?? 0) < 60
+).length; // Ahmedabad
+const geoStateProducts = sortedProducts.filter(
+  (p) => (p.geoPriorityScore ?? 0) >= 20 && (p.geoPriorityScore ?? 0) < 30
+).length; // Gujarat
+const geoCountryProducts = sortedProducts.filter(
+  (p) => (p.geoPriorityScore ?? 0) >= 10 && (p.geoPriorityScore ?? 0) < 20
+).length; // India
+
+const buildHref = (product: ProcessedProduct): string => {
+  if (!product.slug) return "#";
+
+  const hasLocationInfo =
+    product.countrySlug ||
+    product.stateSlug ||
+    product.citySlug ||
+    product.locationSlug;
+
+  // Preferred: use product's own location → /slug/in/country/state/city/area
+  if (hasLocationInfo) {
+    const parts = [
+      product.slug,
+      "in",
+      product.countrySlug,
+      product.stateSlug,
+      product.citySlug,
+      product.locationSlug,
+    ]
+      .filter(Boolean)
+      .map((p) => encodeURIComponent(p as string));
+
+    return `${BASE}/${parts.join("/")}`;
+  }
+
+  // Fallback: reuse current URL tail if already /:slug/in/...
+  const path = reqUrl.pathname.replace(/^\/+|\/+$/g, "");
+  const segments = path ? path.split("/") : [];
+  const inIndex = segments.indexOf("in");
+
+  if (inIndex > 0 && segments.length > inIndex + 1) {
+    const tail = segments.slice(inIndex).join("/");
+    return `${BASE}/${encodeURIComponent(product.slug)}/${tail}`;
+  }
+
+  // Final fallback: use geo location priority
+  return `${BASE}/${encodeURIComponent(
+    product.slug
+  )}/in/${priorityCountry}/${priorityState}/${priorityCity}/${priorityArea}`;
+};
+
+// Build appropriate subtitle based on available products and location
+const getSubtitle = () => {
+  if (subtitle) return subtitle;
+
+  if (hasInSegment) {
+    const locationParts = [urlLocation, urlCity, urlState, urlCountry].filter(
+      Boolean
+    );
+    const locationString = locationParts.join(", ");
+
+    if (sameLocationProducts > 0) {
+      return `Showing ${totalProducts} products available in ${locationString}`;
+    } else if (sameCityProducts > 0) {
+      return `Showing ${totalProducts} products near ${locationString}`;
+    } else {
+      return `Showing ${totalProducts} products available in ${targetCountry}`;
+    }
+  } else {
+    if (geoPriorityProducts > 0) {
+      return `Showing ${totalProducts} products · ${geoPriorityProducts} available in ${priorityCity}`;
+    } else if (geoCityProducts > 0) {
+      return `Showing ${totalProducts} products · ${geoCityProducts} available in ${priorityCity}`;
+    } else {
+      return `Showing ${totalProducts} products available in ${targetCountry}`;
+    }
+  }
+};
+
+// Get location badge text based on geo priority score
+const getLocationBadge = (product: ProcessedProduct) => {
+  if ((product.geoPriorityScore ?? 0) >= 60) return "📍 Your Area";
+  if ((product.geoPriorityScore ?? 0) >= 30) return "🏙️ Your City";
+  if ((product.geoPriorityScore ?? 0) >= 20) return "🏛️ Your State";
+  if ((product.geoPriorityScore ?? 0) >= 10) return "🇮🇳 Your Country";
+
+  // Fallback to distance-based badges
+  if ((product.distanceScore ?? 0) >= 8) return "📍 Same Area";
+  if ((product.distanceScore ?? 0) >= 5) return "🏙️ Same City";
+  if ((product.distanceScore ?? 0) >= 3) return "🏛️ Same State";
+  return "🇮🇳 Same Country";
+};
+
+// Get location badge color based on geo priority score
+const getLocationBadgeClass = (product: ProcessedProduct) => {
+  if ((product.geoPriorityScore ?? 0) >= 60) return "location-badge-your-area";
+  if ((product.geoPriorityScore ?? 0) >= 30) return "location-badge-your-city";
+  if ((product.geoPriorityScore ?? 0) >= 20) return "location-badge-your-state";
+  if ((product.geoPriorityScore ?? 0) >= 10)
+    return "location-badge-your-country";
+
+  // Fallback to distance-based classes
+  if ((product.distanceScore ?? 0) >= 8) return "location-badge-same-area";
+  if ((product.distanceScore ?? 0) >= 5) return "location-badge-same-city";
+  if ((product.distanceScore ?? 0) >= 3) return "location-badge-same-state";
+  return "location-badge-same-country";
+};
+---
+
+<section class="fabric-catalog" id="products">
+  <div class="catalog-container">
+    <div class="catalog-header">
+      <h2 class="catalog-title">{title}</h2>
+      <p class="catalog-subtitle">{getSubtitle()}</p>
+
+      {/* Geo location priority info */}
+     
+
+    {sortedProducts.length === 0 ? (
+      <div class="empty-state">
+        <div class="empty-icon">🌍</div>
+        <h3>No Products Available in {targetCountry.toUpperCase()}</h3>
+        <p>
+          We couldn't find any products available in your selected country (
+          {targetCountry}).
+        </p>
+        <a href="/" class="btn btn-primary" style="margin-top: 1rem;">
+          Browse All Products
+        </a>
+      </div>
+    ) : (
+      <Fragment>
+        <div class="products-grid" id="related-grid">
+          {sortedProducts.map((product, index) => {
+            const isHidden = index >= MAX_INITIAL_VISIBLE;
+            const href = buildHref(product);
+            const locationBadge = getLocationBadge(product);
+            const locationBadgeClass = getLocationBadgeClass(product);
+
+            return (
+              <article
+                class={`product-card ${
+                  isHidden ? "hidden-card" : ""
+                } ${locationBadgeClass}`}
+                data-id={product.id}
+                data-distance={product.distanceScore}
+                data-geo-priority={product.geoPriorityScore}
+                style={isHidden ? "display: none;" : ""}
+              >
+                <a href={href} class="card-link">
+                  <div class="card-image">
+                    <img
+                      src={product.image}
+                      alt={product.title}
+                      loading={index < MAX_INITIAL_VISIBLE ? "eager" : "lazy"}
+                      width="400"
+                      height="300"
+                    />
+
+                   
+
+                   
+                  </div>
+
+                  <div class="card-content">
+                    <div class="product-category">{product.category}</div>
+
+                    <h3
+                      class="product-title"
+                      title={product.title}
+                    >
+                      {product.title}
+                    </h3>
+
+                    {product.productdescription && (
+                      <p class="product-description">
+                        {product.productdescription}
+                      </p>
+                    )}
+
+                  
+
+                   
+
+                 
+
+                   
+                  </div>
+                </a>
+              </article>
+            );
+          })}
+        </div>
+
+        {showLoadMore && (
+          <div class="loadmore-wrap">
+            <button
+              id="load-more-related"
+              class="loadmore-btn"
+              type="button"
+            >
+              Load More ({totalProducts - MAX_INITIAL_VISIBLE} more)
+            </button>
+          </div>
+        )}
+
+        {/* Location note */}
+        <div class="location-note">
+          <p>
+            <strong>Smart Sorting:</strong>
+            {!hasInSegment
+              ? ` Products from ${priorityCity}, ${priorityState} shown first for faster delivery to your location. `
+              : ` Products sorted by proximity to your selected location. `}
+            <strong>Country Filter:</strong> Only showing products
+            available in <strong>{targetCountry}</strong>.
+            {showLoadMore &&
+              ` Showing ${MAX_INITIAL_VISIBLE} of ${totalProducts} products.`}
+          </p>
+        </div>
+      </Fragment>
+    )}
+  </div>
+</section>
+
+<style>
+  .fabric-catalog {
+    position: relative;
+    padding: clamp(2.5rem, 4vw, 5rem) 0;
+  }
+  .fabric-catalog::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      #e2e8f0 50%,
+      transparent 100%
+    );
+  }
+  .catalog-container {
+    max-width: 80rem;
+    margin: 0 auto;
+    padding-inline: 1.25rem;
+  }
+  .catalog-header {
+    text-align: center;
+    margin-bottom: clamp(1.5rem, 3vw, 3.75rem);
+  }
+  .catalog-title {
+    margin: 0 0 0.75rem;
+    line-height: 1.2;
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 800;
+    background: linear-gradient(135deg, #0f2235 0%, #2d3748 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .catalog-subtitle {
+    margin: 0 auto 1rem;
+    max-width: 37.5rem;
+    font-size: 1.125rem;
+    color: #64748b;
+    line-height: 1.6;
+  }
+
+  .geo-priority-info {
+    margin: 1rem 0 0.5rem 0;
+  }
+  .geo-priority-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    border-radius: 2rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+    color: white;
+    border: 1px solid #7c3aed;
+  }
+
+  .country-filter-info {
+    margin: 0.5rem 0;
+  }
+  .country-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    border-radius: 2rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, #059669, #047857);
+    color: white;
+    border: 1px solid #059669;
+  }
+
+  .location-info-banner {
+    margin: 0.5rem 0;
+  }
+  .location-badge-main {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    border-radius: 2rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, #2c4c97, #1e3a8a);
+    color: white;
+    border: 1px solid #2c4c97;
+  }
+
+  .geo-priority-stats,
+  .location-stats {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+  }
+  .geo-priority-stat,
+  .location-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #64748b;
+    font-weight: 600;
+  }
+  .stat-dot {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 50%;
+  }
+  .stat-dot.your-area {
+    background: #7c3aed;
+  }
+  .stat-dot.your-city {
+    background: #8b5cf6;
+  }
+  .stat-dot.your-state {
+    background: #a78bfa;
+  }
+  .stat-dot.your-country {
+    background: #c4b5fd;
+  }
+  .stat-dot.same-area {
+    background: #10b981;
+  }
+  .stat-dot.same-city {
+    background: #3b82f6;
+  }
+  .stat-dot.same-state {
+    background: #f59e0b;
+  }
+  .stat-dot.same-country {
+    background: #6b7280;
+  }
+
+  .products-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    justify-content: center;
+    align-items: stretch;
+  }
+
+  .product-card {
+    position: relative;
+    background: #ffffff;
+    border-radius: 1.25rem;
+    overflow: hidden;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 0.25rem 1.5rem rgba(0, 0, 0, 0.08);
+    transition:
+      transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      border-color 0.3s;
+    flex: 0 0 22rem;
+    max-width: 22rem;
+    height: 100%;
+  }
+  .product-card:hover {
+    transform: translateY(-0.5rem);
+    box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.12);
+    border-color: #e2e8f0;
+  }
+
+  /* Geo priority border colors */
+  .product-card.location-badge-your-area {
+    border-left: 0px solid white;
+  }
+  .product-card.location-badge-your-city {
+    border-left: 0px solid white;
+  }
+  .product-card.location-badge-your-state {
+    border-left: 0px solid white;
+  }
+  .product-card.location-badge-your-country {
+    border-left: 0px solid white;
+  }
+  .product-card.location-badge-same-area {
+    border-left: 4px solid #10b981;
+  }
+  .product-card.location-badge-same-city {
+    border-left: 4px solid #3b82f6;
+  }
+  .product-card.location-badge-same-state {
+    border-left: 4px solid #f59e0b;
+  }
+  .product-card.location-badge-same-country {
+    border-left: 4px solid #6b7280;
+  }
+
+  /* Hidden cards styling */
+  .product-card.hidden-card {
+    display: none;
+  }
+
+  .card-link {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .card-image {
+    position: relative;
+    overflow: hidden;
+    background: #f8fafc;
+  }
+  .card-image img {
+    width: 100%;
+    height: clamp(14rem, 26vw, 17.5rem);
+    object-fit: cover;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .product-card:hover .card-image img {
+    transform: scale(1.05);
+  }
+
+  .out-of-stock-badge,
+  .best-seller-badge,
+  .location-proximity-badge {
+    position: absolute;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #ffffff;
+  }
+  .out-of-stock-badge {
+    top: 0.75rem;
+    left: 0.75rem;
+    background: #ef4444;
+  }
+  .best-seller-badge {
+    top: 0.75rem;
+    left: auto;
+    right: 0.75rem;
+    background: #16a34a;
+  }
+  .location-proximity-badge {
+    bottom: 0.75rem;
+    left: 0.75rem;
+    font-size: 0.7rem;
+  }
+  .location-proximity-badge.location-badge-your-area {
+    background: rgba(124, 58, 237, 0.9);
+  }
+  .location-proximity-badge.location-badge-your-city {
+    background: rgba(139, 92, 246, 0.9);
+  }
+  .location-proximity-badge.location-badge-your-state {
+    background: rgba(167, 139, 250, 0.9);
+  }
+  .location-proximity-badge.location-badge-your-country {
+    background: rgba(196, 181, 253, 0.9);
+  }
+  .location-proximity-badge.location-badge-same-area {
+    background: rgba(16, 185, 129, 0.9);
+  }
+  .location-proximity-badge.location-badge-same-city {
+    background: rgba(59, 130, 246, 0.9);
+  }
+  .location-proximity-badge.location-badge-same-state {
+    background: rgba(245, 158, 11, 0.9);
+  }
+  .location-proximity-badge.location-badge-same-country {
+    background: rgba(107, 114, 128, 0.9);
+  }
+
+  .card-content {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+  }
+
+  .product-category {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #64748b;
+    margin-bottom: 0.35rem;
+  }
+
+  /* Single-line title with ellipsis so all cards keep same height */
+  .product-title {
+    margin: 0 0 0.4rem;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #0f2235;
+    line-height: 1.35;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Description under title, clamped to 2 lines, fixed min-height */
+  .product-description {
+    margin: 0 0 0.6rem;
+    font-size: 0.9rem;
+    color: #64748b;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 2.7rem; /* keeps cards aligned even if some descriptions are shorter */
+  }
+
+  .product-location {
+    margin-bottom: 0.75rem;
+  }
+  .location-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.6rem;
+    border-radius: 999px;
+    background: rgba(44, 76, 151, 0.06);
+    border: 1px solid rgba(44, 76, 151, 0.14);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #1e293b;
+  }
+
+  .product-price {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
+  }
+  .current-price {
+    font-weight: 800;
+    color: #2c4c97;
+    font-size: 1.1rem;
+  }
+  .original-price {
+    font-size: 0.9rem;
+    color: #94a3b8;
+    text-decoration: line-through;
+  }
+
+  .product-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.25rem;
+  }
+  .stars {
+    display: inline-flex;
+    gap: 0.1rem;
+  }
+  .star {
+    font-size: 0.9rem;
+    color: #e5e7eb;
+  }
+  .star.filled {
+    color: #facc15;
+  }
+  .rating-count {
+    font-size: 0.8rem;
+    color: #64748b;
+  }
+
+  .product-footer {
+    margin-top: 0.75rem;
+    font-size: 0.8rem;
+    color: #64748b;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .lead-time {
+    font-weight: 600;
+  }
+  .fast-delivery-note {
+    font-size: 0.7rem;
+    color: #7c3aed;
+    font-weight: 600;
+  }
+  .shipping-note {
+    font-size: 0.7rem;
+    color: #6b7280;
+    font-weight: 600;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 5rem 1.25rem;
+    background: #ffffff;
+    border-radius: 1.5rem;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 0.25rem 1.5rem rgba(0, 0, 0, 0.06);
+  }
+  .empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.7;
+  }
+  .empty-state h3 {
+    margin: 0 0 0.75rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f2235;
+  }
+  .empty-state p {
+    margin: 0;
+    color: #64748b;
+    font-size: 1.05rem;
+  }
+
+  .loadmore-wrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 2.5rem;
+  }
+  .loadmore-btn {
+    appearance: none;
+    border: 0;
+    cursor: pointer;
+    padding: 1rem 2rem;
+    border-radius: 0.75rem;
+    font-weight: 700;
+    font-size: 1.1rem;
+    line-height: 1;
+    color: #ffffff;
+    background: linear-gradient(135deg, #2c4c97 0%, #1e3a8a 100%);
+    box-shadow: 0 0.125rem 0.75rem rgba(44, 76, 151, 0.3);
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease,
+      opacity 0.2s ease;
+    min-width: 200px;
+  }
+  .loadmore-btn:hover {
+    transform: translateY(-0.125rem);
+    box-shadow: 0 0.25rem 1.25rem rgba(44, 76, 151, 0.4);
+    background: linear-gradient(135deg, #1e3a8a 0%, #2c4c97 100%);
+  }
+  .loadmore-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .location-note {
+    text-align: center;
+    margin-top: 2rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 0.75rem;
+    border: 1px solid #e2e8f0;
+  }
+  .location-note p {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 48rem) {
+    .catalog-container {
+      padding-inline: 1rem;
+    }
+    .products-grid {
+      justify-content: center;
+    }
+    .product-card {
+      flex: 0 0 100%;
+      max-width: 100%;
+    }
+    .card-image img {
+      height: 15rem;
+    }
+    .geo-priority-stats,
+    .location-stats {
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .product-footer {
+      flex-direction: column;
+      gap: 0.5rem;
+      align-items: flex-start;
+    }
+    .loadmore-btn {
+      width: 100%;
+      max-width: 300px;
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const loadMoreBtn = document.getElementById("load-more-related");
+    const productsGrid = document.getElementById("related-grid");
+
+    if (!loadMoreBtn || !productsGrid) return;
+
+    const hiddenCards = Array.prototype.slice.call(
+      productsGrid.querySelectorAll(".product-card.hidden-card")
+    );
+    let currentIndex = 0;
+    const cardsPerLoad = 3; // Load 3 more products each time
+
+    function showMoreCards() {
+      loadMoreBtn.disabled = true;
+      loadMoreBtn.textContent = "Loading...";
+
+      setTimeout(function () {
+        const endIndex = Math.min(
+          currentIndex + cardsPerLoad,
+          hiddenCards.length
+        );
+
+        for (let i = currentIndex; i < endIndex; i++) {
+          const card = hiddenCards[i];
+          if (card) {
+            card.style.display = "";
+            card.classList.remove("hidden-card");
+
+            // Lazy load images for newly shown cards
+            const img = card.querySelector("img");
+            if (img && img.getAttribute("loading") === "lazy") {
+              img.setAttribute("loading", "eager");
+            }
+          }
+        }
+
+        currentIndex = endIndex;
+
+        const remaining = hiddenCards.length - currentIndex;
+        if (remaining <= 0) {
+          loadMoreBtn.style.display = "none";
+        } else {
+          loadMoreBtn.textContent = `Load More (${remaining} more)`;
+          loadMoreBtn.disabled = false;
+        }
+      }, 300);
+    }
+
+    loadMoreBtn.addEventListener("click", showMoreCards);
+
+    // Update button text initially
+    if (loadMoreBtn && hiddenCards.length > 0) {
+      loadMoreBtn.textContent = `Load More (${hiddenCards.length} more)`;
+    }
+  });
+</script>

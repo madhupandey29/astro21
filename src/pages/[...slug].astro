@@ -1,0 +1,647 @@
+---
+// src/pages/[...slug].astro
+
+import { Fragment } from "astro/jsx-runtime";
+
+/**
+ * Handles:
+ * "/"                     → default GEO-based product landing
+ * "/ahmedabad"            → city landing (legacy)
+ * "/:productSlug/in/..."  → product × location landing
+ * "/market-area"          → Market Area Modal (renders modal, skips content)
+ * ZERO redirects; full meta injected into <head>.
+ */
+
+import LandingLayout from "../layouts/LandingLayout.astro";
+import WhatsAppFab from "../components/WhatsAppFab.astro";
+import FashionTestimonial from "../components/sections/Testimonial.astro";
+import FAQ from "../components/sections/FAQSection.astro";
+import ContactSection from "../components/sections/ContactSection.astro";
+import RelatedProductsByLocation from "../components/sections/RelatedProductsByLocation.astro";
+import OverviewSection from "../components/sections/OverviewSection.astro";
+import StickyContactModal from "../components/StickyContactModal.astro";
+import CommitmentText from "../components/sections/CommitmentText.astro";
+import CityProductHero from "../components/sections/CityProductHero.astro";
+import ProductHeroBySlug from "../components/sections/ProductHeroBySlug.astro";
+
+// Market area modal (opened from header)
+import MarketAreaModal from "../components/MarketAreaModal.astro";
+
+export const prerender = false;
+
+/* ========= Config ========= */
+const DEFAULT_CITY_CODE = "ahmedabad";
+const OVERVIEW_IMG = "/images/hero/overview-fabric.webp";
+
+/** This is your fixed default product slug (used when slug is missing) */
+const FALLBACK_PRODUCT_SLUG =
+  "premium-cotton-t-shirt";
+
+// SEO + office APIs
+const SEO_PUBLIC_API = "https://test.amrita-fashions.com/api/seo/public";
+const SEO_DETAIL_API = "https://test.amrita-fashions.com/api/seo";
+const OFFICE_INFO_API =
+  "https://test.amrita-fashions.com/landing/officeinformation";
+
+/** Public GEO API base (can override via env) */
+const GEO_API_BASE =
+  import.meta.env.PUBLIC_GEO_API_BASE || "https://ipapi.co";
+
+// Known city codes (can later come from API)
+const CITY_CODES = [
+  "ahmedabad",
+  "jaipur",
+  "mumbai",
+  "delhi",
+  "tiruppur",
+  "surat",
+  "kanpur",
+  "kolkata",
+  "ludhiana",
+  "bhiwandi",
+  "ichalkaranji",
+  "noida",
+  "gurugram",
+  "coimbatore",
+  "bengaluru",
+  "hyderabad",
+  "chennai",
+  "pune",
+  "indore",
+  "bhopal",
+  "varanasi",
+  "solapur",
+  "amravati",
+  "panipat",
+  "nagpur",
+  "bhilwara",
+  "ranipet",
+  "rajkot",
+].map((s) => s.toLowerCase());
+
+/* ========= GEO helpers ========= */
+
+type GeoSlugs = {
+  countrySlug: string;
+  stateSlug: string;
+  citySlug: string;
+  areaSlug: string;
+};
+
+/** Fallback geo (used for localhost / failures) */
+const FALLBACK_GEO: GeoSlugs = {
+  countrySlug: "india",
+  stateSlug: "gujarat",
+  citySlug: "ahmedabad",
+  areaSlug: "isanpur",
+};
+
+/** Convert any text to a clean, lowercase slug for URL path */
+const slugifyForPath = (value: string): string => {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/['’]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+};
+
+/** Resolve GEO from request IP and map to {country,state,city,area} slugs */
+const getGeoSlugsFromRequest = async (
+  req: Request
+): Promise<GeoSlugs | null> => {
+  try {
+    const xff = req.headers.get("x-forwarded-for") || "";
+    const ipCandidate = xff.split(",")[0].trim();
+    const ip =
+      ipCandidate && ipCandidate !== "127.0.0.1" && ipCandidate !== "::1"
+        ? ipCandidate
+        : "";
+
+    const url = ip
+      ? `${GEO_API_BASE}/${encodeURIComponent(ip)}/json/`
+      : `${GEO_API_BASE}/json/`;
+
+    const res = await fetch(url, { headers: { accept: "application/json" } });
+    if (!res.ok) return null;
+
+    const data = await res.json();
+
+    const countryName =
+      data?.country_name || data?.country || FALLBACK_GEO.countrySlug;
+    const stateName =
+      data?.region ||
+      data?.region_name ||
+      data?.state ||
+      FALLBACK_GEO.stateSlug;
+    const cityName = data?.city || FALLBACK_GEO.citySlug;
+    const areaName =
+      data?.district ||
+      data?.suburb ||
+      data?.county ||
+      data?.locality ||
+      data?.city ||
+      FALLBACK_GEO.areaSlug;
+
+    const countrySlug =
+      slugifyForPath(countryName) || FALLBACK_GEO.countrySlug;
+    const stateSlug = slugifyForPath(stateName) || FALLBACK_GEO.stateSlug;
+    const citySlug = slugifyForPath(cityName) || FALLBACK_GEO.citySlug;
+    const areaSlug = slugifyForPath(areaName) || FALLBACK_GEO.areaSlug;
+
+    return { countrySlug, stateSlug, citySlug, areaSlug };
+  } catch {
+    return null;
+  }
+};
+
+/* ========= Params / URL schema parsing ========= */
+
+const raw = Astro.params.slug as string | undefined;
+
+// 1. Check if the URL path ends with '/market-area'
+const isMarketAreaModalPath = raw?.endsWith("/market-area") ?? false;
+
+// 2. Remove the market-area segment for SEO/Content routing
+const rawForRouting = isMarketAreaModalPath
+  ? raw!.replace(/\/market-area$/, "")
+  : raw;
+
+const segments = rawForRouting
+  ? String(rawForRouting).split("/").filter(Boolean)
+  : [];
+
+const isHomePage = segments.length === 0;
+
+const first = (segments[0] ?? "").toLowerCase();
+const second = (segments[1] ?? "").toLowerCase();
+const hasInKeyword = second === "in";
+
+// product × location URL pattern:
+// /:productSlug/in/:countrySlug?/:stateSlug?/:citySlug?/:locationSlug?
+const isProductLocationPage = !isHomePage && hasInKeyword;
+
+/**
+ * City landing:
+ *   - NOT home
+ *   - NOT product×location
+ *   - slug is in CITY_CODES
+ */
+const isCityLanding =
+  !isHomePage && !isProductLocationPage && CITY_CODES.includes(first);
+const isCityPage = isCityLanding;
+
+/* ========= Request URL / canonical base ========= */
+
+const reqUrl = new URL(Astro.request.url);
+
+/* ========= GEO-based slugs + URL ========= */
+
+let geo: GeoSlugs | null = await getGeoSlugsFromRequest(Astro.request);
+if (!geo) {
+  geo = FALLBACK_GEO;
+}
+
+// product slug coming from URL only in /:productSlug/in/...
+let productSlugFromUrl = "";
+let countrySlug: string | undefined;
+let stateSlug: string | undefined;
+let citySlug: string | undefined;
+let locationSlug: string | undefined;
+
+if (isProductLocationPage) {
+  productSlugFromUrl = first; // product slug from URL
+  countrySlug = (segments[2] || "").toLowerCase() || undefined;
+  stateSlug = (segments[3] || "").toLowerCase() || undefined;
+  citySlug = (segments[4] || "").toLowerCase() || undefined;
+  locationSlug = (segments[5] || "").toLowerCase() || undefined;
+}
+
+// Fill missing parts for product × location URLs using GEO slugs
+if (isProductLocationPage && geo) {
+  countrySlug = (countrySlug || geo.countrySlug) as string;
+  stateSlug = (stateSlug || geo.stateSlug) as string;
+  citySlug = (citySlug || geo.citySlug) as string;
+  locationSlug = (locationSlug || geo.areaSlug) as string;
+}
+
+// This is the "display URL":
+const slugForGeo =
+  (productSlugFromUrl || FALLBACK_PRODUCT_SLUG).toLowerCase();
+
+const geoProductUrl = `${reqUrl.origin}/${slugForGeo}/in/${geo.countrySlug}/${geo.stateSlug}/${geo.citySlug}/${geo.areaSlug}`;
+
+/* ========= City / current-city helpers ========= */
+
+const currentCity = isCityLanding
+  ? first
+  : (citySlug || locationSlug || DEFAULT_CITY_CODE);
+
+/* ========= SEO fetch ========= */
+
+const norm = (s: any) => String(s ?? "").trim().toLowerCase();
+type SeoDoc = Record<string, any>;
+
+let seoDoc: SeoDoc | null = null;
+let relatedSeoDocs: SeoDoc[] = [];
+
+// Skip heavy SEO calls if the URL indicates the modal-only path
+if (!isMarketAreaModalPath) {
+  try {
+    if (isProductLocationPage && slugForGeo) {
+      const countryForApi = countrySlug || geo.countrySlug || "india";
+
+      const detailUrl = new URL(
+        `${SEO_DETAIL_API}/${encodeURIComponent(
+          slugForGeo
+        )}/${encodeURIComponent(countryForApi)}`
+      );
+
+      if (stateSlug) detailUrl.searchParams.set("state", stateSlug);
+      if (citySlug) detailUrl.searchParams.set("city", citySlug);
+      if (locationSlug) detailUrl.searchParams.set("location", locationSlug);
+
+      const res = await fetch(detailUrl.toString(), {
+        headers: { accept: "application/json" },
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        const data: SeoDoc[] = Array.isArray(json?.data)
+          ? json.data
+          : json?.data
+          ? [json.data]
+          : [];
+
+        if (data.length) {
+          let primary: SeoDoc | null = null;
+
+          if (locationSlug) {
+            primary =
+              data.find((doc) => norm(doc?.location?.slug) === locationSlug) ??
+              null;
+          }
+
+          if (!primary && citySlug) {
+            primary =
+              data.find(
+                (doc) => norm(doc?.location?.city?.name) === citySlug
+              ) ?? null;
+          }
+
+          seoDoc = primary ?? data[0];
+          relatedSeoDocs = data.filter((doc) => doc !== seoDoc);
+        }
+      }
+    } else {
+      const url = new URL(SEO_PUBLIC_API);
+      url.searchParams.set("path", reqUrl.pathname.replace(/\/+$/, "") || "/");
+      url.searchParams.set("mode", isCityPage ? "city" : "generic");
+
+      if (geo) {
+        url.searchParams.set("country", geo.countrySlug);
+        url.searchParams.set("state", geo.stateSlug);
+        url.searchParams.set("city", geo.citySlug);
+        url.searchParams.set("location", geo.areaSlug);
+      }
+
+      const res = await fetch(url.toString(), {
+        headers: { accept: "application/json" },
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        const data: SeoDoc[] = Array.isArray(json?.data)
+          ? json.data
+          : json?.data
+          ? [json.data]
+          : [];
+
+        if (data.length) {
+          seoDoc = data[0];
+          relatedSeoDocs = data.slice(1);
+        }
+      }
+    }
+  } catch (_e) {
+    seoDoc = null;
+  }
+}
+
+const productSlugFromSeo =
+  seoDoc?.product?.slug ? norm(seoDoc.product.slug) : undefined;
+
+const currentSlug = productSlugFromSeo
+  ? productSlugFromSeo
+  : productSlugFromUrl ||
+    (!isCityPage ? (segments[0] ?? "").toLowerCase() : FALLBACK_PRODUCT_SLUG);
+
+/* ========= Page-level fallbacks ========= */
+
+const fallbackTitle =
+  !isProductLocationPage && !isCityPage
+    ? "Home – Amrita Fashions"
+    : "Fabric – Amrita Fashions";
+const fallbackDesc = "Premium fabrics for B2B buyers.";
+
+// Modal path-specific title/description
+const pageTitle = isMarketAreaModalPath
+  ? "Select Market Area – Amrita Fashions"
+  : seoDoc?.title || fallbackTitle;
+const pageDesc = isMarketAreaModalPath
+  ? "Choose your country, state, and city to find local market information."
+  : seoDoc?.description || seoDoc?.excerpt || fallbackDesc;
+
+const canonical = reqUrl.origin + reqUrl.pathname;
+
+/* ========= Helpers ========= */
+function s(v: any) {
+  if (v === null || v === undefined) return "";
+  if (typeof v === "string") return v;
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  try {
+    return JSON.stringify(v);
+  } catch {
+    return String(v);
+  }
+}
+
+const stripHtml = (value: string) =>
+  value
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const cleanText = (value: any) => {
+  const raw = s(value);
+  if (!raw) return undefined;
+  const cleaned = stripHtml(raw);
+  return cleaned || undefined;
+};
+
+const cleanPhone = (value: string) => value.replace(/[^\d+]/g, "");
+
+/* ========= Company info (for JSON-LD) ========= */
+type OfficeInfo = {
+  companyName?: string;
+  companyPhone1?: string;
+  companyPhone2?: string;
+  whatsappNumber?: string;
+  companyEmail?: string;
+  companyAddress?: string;
+  companyLogoUrl?: string;
+};
+
+let officeDoc: OfficeInfo | null = null;
+try {
+  const res = await fetch(OFFICE_INFO_API, {
+    headers: { accept: "application/json" },
+  });
+  if (res.ok) {
+    const json = await res.json();
+    const data = Array.isArray(json?.data) ? json.data : [];
+    officeDoc = data.length ? (data[0] as OfficeInfo) : null;
+  }
+} catch (_e) {
+  officeDoc = null;
+}
+
+const defaultCompanyName = "Amrita Fashions";
+const company = {
+  name:
+    (officeDoc?.companyName ?? defaultCompanyName).trim() ||
+    defaultCompanyName,
+  email: (officeDoc?.companyEmail ?? "").trim(),
+  phone:
+    (officeDoc?.companyPhone1 ?? "").trim() ||
+    (officeDoc?.whatsappNumber ?? "").trim() ||
+    (officeDoc?.companyPhone2 ?? "").trim(),
+  address: (officeDoc?.companyAddress ?? "").trim(),
+  logo: (officeDoc?.companyLogoUrl ?? "").trim(),
+};
+
+/* ========= JSON-LD ========= */
+
+const structuredData = (() => {
+  if (isMarketAreaModalPath) return [];
+
+  if (!seoDoc && !company.name) return [];
+
+  const canonicalUrl = seoDoc?.canonical_url || canonical;
+  const productName =
+    cleanText(seoDoc?.title) || cleanText(seoDoc?.productlocationtitle);
+
+  const productDescription =
+    cleanText(seoDoc?.description) ||
+    cleanText(seoDoc?.excerpt) ||
+    cleanText(seoDoc?.productdescription);
+
+  const organizationLd = company.name
+    ? {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        name: company.name,
+        url: canonicalUrl,
+        logo: company.logo || undefined,
+        email: company.email || undefined,
+        contactPoint: company.phone
+          ? [
+              {
+                "@type": "ContactPoint",
+                telephone: cleanPhone(company.phone),
+                contactType: "customer support",
+                areaServed: "IN",
+                availableLanguage: ["en", "hi"],
+              },
+            ]
+          : undefined,
+        address: company.address
+          ? {
+              "@type": "PostalAddress",
+              streetAddress: stripHtml(company.address),
+              addressCountry: "IN",
+            }
+          : undefined,
+      }
+    : null;
+
+  const productLd = seoDoc
+    ? {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        name: productName || "Premium Fabric",
+        description: productDescription,
+        sku: cleanText(seoDoc?.sku),
+        mpn: cleanText(seoDoc?.productIdentifier),
+        brand: company.name
+          ? {
+              "@type": "Brand",
+              name: company.name,
+            }
+          : undefined,
+        image: seoDoc?.ogImage ? [String(seoDoc.ogImage)] : undefined,
+        offers:
+          typeof seoDoc?.salesPrice === "number"
+            ? {
+                "@type": "Offer",
+                priceCurrency: "INR",
+                price: seoDoc.salesPrice,
+                availability: "https://schema.org/InStock",
+                url: canonicalUrl,
+              }
+            : undefined,
+        aggregateRating:
+          typeof seoDoc?.rating_value === "number" &&
+          typeof seoDoc?.rating_count === "number"
+            ? {
+                "@type": "AggregateRating",
+                ratingValue: seoDoc.rating_value,
+                reviewCount: seoDoc.rating_count,
+              }
+            : undefined,
+      }
+    : null;
+
+  const breadcrumbLd = canonicalUrl
+    ? {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Home",
+            item: reqUrl.origin,
+          },
+          !isCityPage
+            ? {
+                "@type": "ListItem",
+                position: 2,
+                name: productName || "Fabric",
+                item: canonicalUrl,
+              }
+            : null,
+        ].filter(Boolean),
+      }
+    : null;
+
+  const localBusinessLd =
+    company.name && company.address
+      ? {
+          "@context": "https://schema.org",
+          "@type": "LocalBusiness",
+          name: company.name,
+          url: canonicalUrl,
+          telephone: company.phone ? cleanPhone(company.phone) : undefined,
+          email: company.email || undefined,
+          address: {
+            "@type": "PostalAddress",
+            streetAddress: stripHtml(company.address),
+            addressCountry: "IN",
+          },
+        }
+      : null;
+
+  return [organizationLd, productLd, breadcrumbLd, localBusinessLd].filter(
+    Boolean
+  );
+})();
+
+const structuredDataJson = structuredData
+  .map((node) => {
+    const json = JSON.stringify(node, null, 2);
+    return json ? json.replace(/<\/script>/gi, "<\\/script>") : "";
+  })
+  .filter(Boolean);
+---
+
+
+
+<LandingLayout title={pageTitle} description={pageDesc}>
+  <Fragment slot="head">
+    <title>{pageTitle}</title>
+    <meta name="description" content={pageDesc} />
+
+    <link rel="canonical" href={canonical} />
+
+    <meta name="x-geo-product-url" content={geoProductUrl} />
+    {/* this is what navbar reads */}
+    <meta name="x-product-slug" content={slugForGeo} />
+
+    {seoDoc?.keywords && <meta name="keywords" content={s(seoDoc.keywords)} />}
+    {seoDoc?.robots && <meta name="robots" content={s(seoDoc.robots)} />}
+    {seoDoc?.author_name && (
+      <meta name="author" content={s(seoDoc.author_name)} />
+    )}
+    {seoDoc?.themeColor && (
+      <meta name="theme-color" content={s(seoDoc.themeColor)} />
+    )}
+
+    {/* ...rest of your meta + JSON-LD exactly as before... */}
+    {structuredDataJson.map((json) => (
+      <script type="application/ld+json" set:html={json} />
+    ))}
+  </Fragment>
+
+  {/* rest of your layout content exactly as before */}
+  {isMarketAreaModalPath ? null : (
+    <Fragment>
+      {isCityPage ? (
+        <CityProductHero cityCode={currentCity} />
+      ) : (
+        <ProductHeroBySlug
+          currentSlug={currentSlug}
+          seoDoc={seoDoc}
+          productFromSeo={seoDoc?.product}
+        />
+      )}
+
+      {isCityPage ? (
+        <OverviewSection
+          heading="Leading B2B Fabric Supplier Worldwide"
+          tagline="ISO 9001 Certified • 500+ Global Partners • Ships to 50+ Countries"
+          image={OVERVIEW_IMG}
+          imageAlt="Premium textile manufacturing"
+        >
+          <CommitmentText slot="extra" />
+        </OverviewSection>
+      ) : (
+        <OverviewSection currentSlug={currentSlug} />
+      )}
+
+      {isCityPage ? (
+        <RelatedProductsByLocation
+          cityCode={currentCity}
+          seoDoc={seoDoc}
+          products={relatedSeoDocs}
+          title="Explore Our Fabric Catalog"
+          subtitle="City-specific products curated for your sourcing"
+        />
+      ) : (
+        <RelatedProductsByLocation
+          currentSlug={currentSlug}
+          seoDoc={seoDoc}
+          products={relatedSeoDocs}
+          title="Explore Our Fabric Catalog"
+          subtitle="More options from this location"
+        />
+      )}
+    </Fragment>
+  )}
+
+  <StickyContactModal
+    side="left"
+    targetId="contact"
+    offsetBottom="max(env(safe-area-inset-bottom),16px)"
+    label="Get Your Free Sample Today"
+  />
+
+  <WhatsAppFab />
+  <FashionTestimonial />
+  <FAQ />
+  <ContactSection />
+  <MarketAreaModal />
+</LandingLayout>
+
+
+  

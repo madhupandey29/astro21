@@ -1,0 +1,413 @@
+---
+interface Props {
+  /** Which edge to dock the launcher on */
+  side?: "left" | "right";
+  /** Bottom offset so it clears WhatsApp etc. (e.g. "6rem") */
+  offsetBottom?: string;
+  /** Tooltip/aria label */
+  label?: string;
+  /** The on-page section id to show inside the modal (your ContactSection root id) */
+  targetId?: string;
+  /** Optional: override modal max width / height (CSS lengths) */
+  maxWidth?: string;
+  maxHeight?: string;
+}
+
+const {
+  side = "right",
+  offsetBottom = "6rem",
+  label = "Open contact",
+  targetId = "contact",
+  maxWidth = "min(92vw, 1200px)",
+  maxHeight = "min(90vh, 800px)",
+} = Astro.props as Props;
+---
+
+<!-- Floating launcher -->
+<button
+  id="contact-fab"
+  class={`fab ${side === "right" ? "fab--right" : "fab--left"}`}
+  style={`bottom: ${offsetBottom};`}
+  aria-label={label}
+  title={label}
+  aria-haspopup="dialog"
+  aria-expanded="false"
+>
+  <span class="fab__ripple" aria-hidden="true"></span>
+  <span class="fab__icon" aria-hidden="true">✉</span>
+</button>
+
+<!-- Modal -->
+<dialog
+  id="contact-dialog"
+  class="sheet"
+  data-target-id={targetId}
+  style={`--sheet-w: ${maxWidth}; --sheet-h: ${maxHeight};`}
+>
+  <div class="sheet__card" role="document">
+    <button class="sheet__close" data-close aria-label="Close">
+      <svg viewBox="0 0 24 24" class="x" aria-hidden="true">
+        <path
+          d="M18 6L6 18M6 6l12 12"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        />
+      </svg>
+    </button>
+
+    <!-- Centered, padded, scrollable body -->
+    <div class="sheet__body">
+      <div id="contact-modal-mount" class="sheet__content"></div>
+    </div>
+  </div>
+</dialog>
+
+<style>
+  :root{
+    --brand: var(--tp-theme-primary, #2C4C97);
+    --brand-light: color-mix(in srgb, var(--brand) 10%, white);
+    --brand-lighter: color-mix(in srgb, var(--brand) 5%, white);
+    --radius: 16px;
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+    --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
+  }
+
+  /* ===== FAB ===== */
+  .fab{
+    position: fixed;
+    bottom: var(--fab-bottom, 5.5rem);
+    width: clamp(3.4rem, 6.2vw, 3.9rem);
+    height: clamp(3.4rem, 6.2vw, 3.9rem);
+    display: grid;
+    place-items: center;
+
+    border-radius: 999px;
+    border: 2px solid var(--brand);           /* BLUE BORDER */
+    background: #ffffff;
+    color: var(--brand);
+    cursor: pointer;
+    z-index: 9999;
+
+    box-shadow: 0 10px 24px rgba(0,0,0,0.28);
+    overflow: hidden;
+    transition:
+      transform 0.18s ease,
+      box-shadow 0.18s ease,
+      border-color 0.18s ease,
+      background-color 0.18s ease;
+  }
+  
+  .fab:hover {
+    transform: translateY(-2px);
+    background: #f8fafc;
+    border-color: color-mix(in srgb, var(--brand) 80%, #ffffff 20%);
+    box-shadow: 0 14px 30px rgba(0,0,0,0.32);
+  }
+  
+  .fab--right{ 
+    right: clamp(1rem, 3vw, 1.5rem); 
+  }
+  
+  .fab--left { 
+    left: clamp(1rem, 3vw, 1.5rem); 
+  }
+  
+  .fab__icon{ 
+    font-size: 1.6rem;
+    line-height: 1;
+    position: relative; 
+    z-index: 1;
+    color: var(--brand);
+    font-weight: 700;
+    -webkit-text-stroke: 0.4px currentColor;
+  }
+  
+  .fab__ripple{
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: var(--brand);
+    opacity: 0;
+    transform: scale(1);
+    transition: opacity .25s ease, transform .25s ease;
+  }
+  
+  .fab:hover .fab__ripple{ 
+    opacity: .10; 
+    transform: scale(1.18); 
+  }
+
+  /* ===== SHEET (dialog) ===== */
+  .sheet{ 
+    border: none; 
+    padding: 0; 
+    background: transparent; 
+    margin: auto; 
+    width: var(--sheet-w);
+    max-width: 96vw;
+    animation: fadeIn 0.3s ease-out;
+  }
+  
+  .sheet::backdrop{ 
+    background: rgb(15 23 42 / .55); 
+    backdrop-filter: blur(.2rem);
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .sheet__card{
+    width: 100%;
+    max-height: var(--sheet-h);
+    background: #fff;
+    border-radius: clamp(18px, 2vw, 22px);
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: 1fr;
+    animation: slideUp 0.3s ease-out;
+  }
+
+  @keyframes slideUp {
+    from { 
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to { 
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Close button – light chip */
+  .sheet__close{
+    position: absolute;
+    right: clamp(14px, 1.6vw, 18px);
+    top: clamp(14px, 1.6vw, 18px);
+    width: 2.4rem;
+    height: 2.4rem;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 999px;
+    border: 1px solid rgba(15,23,42,0.10);
+    cursor: pointer;
+    z-index: 2;
+
+    background: #ffffff;
+    color: #0f172a;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
+
+    transition: transform 0.18s ease,
+                box-shadow 0.18s ease,
+                background-color 0.18s ease,
+                border-color 0.18s ease;
+  }
+  
+  .sheet__close:hover{ 
+    background: #f8fafc;
+    border-color: rgba(15,23,42,0.16);
+    transform: translateY(-1px);
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.25);
+  }
+  
+  .x{ 
+    width: 1.15rem; 
+    height: 1.15rem; 
+  }
+
+  /* ===== Centered scroll frame ===== */
+  .sheet__body{
+    box-sizing: border-box;
+    scrollbar-gutter: stable both-edges;
+    max-height: var(--sheet-h);
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+
+    /* reduced inner top white space */
+    padding: clamp(10px, 1.4vw, 16px);
+    padding-top: clamp(6px, 0.8vw, 10px);
+  }
+
+  .sheet__content{
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    box-sizing: border-box;
+  }
+
+  /* Remove extra top gap from the contact section when inside modal */
+  .sheet :where(#contact){
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  /* Reset contact section styles for modal */
+  .sheet :where(.contact-wrap){
+    min-height: unset !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    background: none !important;
+    overflow: visible !important;
+  }
+
+  .sheet :where(.floating-shapes) {
+    display: none !important;
+  }
+
+  .sheet :where(.contact-wrap .container){
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding-inline: 0 !important;
+    overflow: visible !important;
+  }
+
+  .sheet :where(.contact-wrap .grid){
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: clamp(20px, 2vw, 28px) !important;
+    align-items: start !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  @media (max-width: 968px){
+    .sheet{ 
+      width: min(94vw, 700px) !important; 
+    }
+    
+    .sheet :where(.contact-wrap .grid){ 
+      grid-template-columns: 1fr !important; 
+    }
+  }
+</style>
+
+<script is:inline>
+  function initContactModal() {
+    if (document.documentElement.dataset.contactModalInit === "1") return;
+    document.documentElement.dataset.contactModalInit = "1";
+
+    const fab = document.getElementById("contact-fab");
+    const dialog = document.getElementById("contact-dialog");
+    const mount = document.getElementById("contact-modal-mount");
+
+    if (!fab || !dialog || !mount) return;
+    if (typeof dialog.showModal !== "function") {
+      fab.style.display = "none";
+      return;
+    }
+
+    const targetId = dialog.dataset.targetId || "contact";
+    const contactSection = document.getElementById(targetId);
+    if (!contactSection) {
+      fab.style.display = "none";
+      return;
+    }
+
+    let placeholder = null;
+    let originalParent = null;
+    let originalNextSibling = null;
+
+    function openModal() {
+      try {
+        originalParent = contactSection.parentNode;
+        originalNextSibling = contactSection.nextSibling;
+
+        placeholder = document.createElement("div");
+        const rect = contactSection.getBoundingClientRect();
+        placeholder.style.height = rect.height + "px";
+        placeholder.setAttribute("aria-hidden", "true");
+        if (originalParent) {
+          originalParent.insertBefore(placeholder, contactSection);
+        }
+
+        mount.appendChild(contactSection);
+
+        dialog.showModal();
+        fab.setAttribute("aria-expanded", "true");
+        document.documentElement.style.overflow = "hidden";
+
+        setTimeout(function () {
+          const firstInput = contactSection.querySelector(
+            "input, select, textarea, button"
+          );
+          if (firstInput && typeof firstInput.focus === "function") {
+            firstInput.focus();
+          }
+        }, 100);
+      } catch (error) {
+        console.error("Error opening modal:", error);
+      }
+    }
+
+    function closeModal() {
+      try {
+        if (originalParent && contactSection.parentNode === mount) {
+          if (originalNextSibling) {
+            originalParent.insertBefore(contactSection, originalNextSibling);
+          } else {
+            originalParent.appendChild(contactSection);
+          }
+        }
+
+        if (placeholder && placeholder.parentNode) {
+          placeholder.parentNode.removeChild(placeholder);
+        }
+
+        placeholder = null;
+        originalParent = null;
+        originalNextSibling = null;
+
+        dialog.close();
+        fab.setAttribute("aria-expanded", "false");
+        document.documentElement.style.overflow = "";
+        fab.focus();
+      } catch (error) {
+        console.error("Error closing modal:", error);
+      }
+    }
+
+    fab.addEventListener("click", openModal);
+
+    dialog.addEventListener("cancel", function (event) {
+      event.preventDefault();
+      closeModal();
+    });
+
+    dialog.addEventListener("click", function (event) {
+      if (event.target === dialog) {
+        closeModal();
+      }
+    });
+
+    const closeButton = dialog.querySelector("[data-close]");
+    if (closeButton) {
+      closeButton.addEventListener("click", closeModal);
+    }
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && dialog.open) {
+        closeModal();
+      }
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", initContactModal);
+  document.addEventListener("astro:page-load", initContactModal);
+</script>

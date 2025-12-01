@@ -1,0 +1,150 @@
+/* ====== THEME TOKENS — EDIT THIS ONE FILE ====== */
+/* One family only (Hind) — self-hosted via @fontsource (no Google Fonts) */
+@import "@fontsource/hind/latin-400.css";
+@import "@fontsource/hind/latin-600.css";
+@import "@fontsource/hind/latin-700.css";
+
+:root{
+  /* Brand */
+  --tp-theme-primary:   #2C4C97; /* AGE Blue */
+  --tp-theme-secondary: #D6A74B; /* AGE Gold */
+  --tp-theme-1:         #112338; /* Deep navy */
+  --AGE-GOLD-INK-AA: #6B5316;   /* dark gold ink ~6.6:1 */
+  --AGE-GOLD-BG-SOFT: #FFF4CC; 
+   --fab-accent: #0ea5e9; /* pale gold chip background */
+
+  /* Navbar theme */
+  --tp-nav-bg:        #F6F5EB;      /* creamy pill background (tweak here) */
+  --tp-nav-border:    #E7E4D6;      /* subtle border */
+  --tp-nav-shadow:    0 6px 24px rgba(17,35,56,.08);
+  --tp-nav-pad-y:     12px;
+  --tp-nav-pad-x:     16px;
+
+  /* Text & base */
+  --tp-common-white: #ffffff;
+  --tp-common-black: #0F2235;
+  --tp-text-1:       #0F2235;  /* headings */
+  --tp-text-2:       #475569;  /* body/subtle */
+
+  /* Surfaces */
+  --tp-grey-1:  #F7F9FC;  /* page background / alt section bg */
+  --tp-grey-2:  #E6ECF2;  /* borders */
+  --tp-grey-3:  #F1F5F9;
+  --tp-grey-5:  #EEF2F6;
+  --tp-grey-6:  #D9E2EC;
+  --tp-grey-7:  #C9D3E0;
+  --tp-grey-8:  #B6C1CF;
+  --tp-grey-9:  #94A3B8;
+
+  /* Footer / dark strips */
+  --tp-footer-grey-1: #142A42;
+
+  /* Status */
+  --tp-theme-green: #1E824C;
+  --tp-green-dark:  #10603B;
+
+  /* Fonts — single family everywhere */
+  --tp-ff-display: 'Hind', system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --tp-ff-body:    'Hind', system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+
+  /* Layout helpers */
+  --tp-header-height: 88px;         /* keep near visual navbar height */
+  --header-offset: var(--tp-header-height);
+  --page-xpad: 16px;
+  --container-max: 1200px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --shadow-1: 0 6px 24px rgba(17, 35, 56, 0.08);
+}
+
+/* Optional dark theme via class="theme-dark" on <html> */
+.theme-dark{
+  --tp-common-white:#0f1b2d;
+  --tp-common-black:#e7edf6;
+
+  --tp-text-1:#e7edf6;
+  --tp-text-2:#b9c3d1;
+
+  --tp-grey-1:#0d1420;
+  --tp-grey-2:#1e2a3a;
+  --tp-footer-grey-1:#0e1a2b;
+
+  /* keep identity */
+  --tp-theme-primary:#2C4C97;
+  --tp-theme-secondary:#D6A74B;
+  --tp-theme-1:#112338;
+}
+
+/* ====== BASE / LAYOUT ====== */
+*{ box-sizing:border-box }
+html, body{ height:100%; margin:0; padding:0 }        /* allow sticky footer calc */
+
+body{
+  background: var(--tp-grey-1);
+  color: var(--tp-text-1);
+  font-family: var(--tp-ff-body);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+img{ max-width:100%; height:auto; display:block }
+a{ color:inherit; text-decoration:none }
+
+.container{ max-width:var(--container-max); margin:0 auto; padding:6px var(--page-xpad) }
+.grid{ display:grid; gap:16px }
+
+/* Headings & text */
+.h1{ font-family:var(--tp-ff-display); font-weight:700; font-size:clamp(28px,4vw,44px); line-height:1.1; margin:0 0 12px }
+.h2{ font-family:var(--tp-ff-display); font-weight:700; font-size:clamp(22px,3vw,32px); line-height:1.2; margin:0 0 10px }
+.p{ color:var(--tp-text-2) }
+
+/* Cards / sections / buttons */
+.section{
+  background: var(--tp-common-white);
+  border: 1px solid var(--tp-grey-2);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  box-shadow: var(--shadow-1);
+}
+.card{
+  background: var(--tp-common-white);
+  border: 1px solid var(--tp-grey-2);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+.btn{
+  display:inline-block; padding:12px 18px; border-radius:12px;
+  background: var(--tp-theme-primary); color:#fff; font-weight:600; border:none; cursor:pointer;
+  transition: transform .08s ease, background-color .15s ease;
+}
+.btn:hover{ transform: translateY(-1px) }
+.btn.secondary{
+  background: transparent;
+  color: var(--tp-theme-primary);
+  border: 1px solid var(--tp-theme-primary);
+}
+
+/* ====== STICKY FOOTER SHELL ====== */
+.page{                         /* applied to <body> in your layout */
+  min-height: 100dvh;          /* dynamic viewport for mobile */
+  display: flex;
+  flex-direction: column;
+}
+.page > main{ flex: 1 0 auto; }
+.site-footer{ margin-top: auto; }   /* footer always at the very bottom */
+
+/* Make a section span the entire viewport width even inside a .container */
+.full-bleed{
+  inline-size: 100vw;                      /* full viewport width */
+  margin-inline: calc(50% - 50vw);         /* pull it out of the container */
+}
+
+/* Avoid a 1px horizontal scrollbar on some browsers when using full-bleed */
+.page{ overflow-x: clip; }                  /* or body { overflow-x: clip; } */
+
+/* Swiper arrows (scoped via Astro :global) */
+:global(.age-swiper .swiper-button-prev),
+:global(.age-swiper .swiper-button-next){
+  background:#0f2136; color:#fff;
+}
+
