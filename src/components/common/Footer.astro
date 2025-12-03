@@ -47,33 +47,60 @@ const year = new Date().getFullYear();
           <div class="age-col" role="listitem">
             <div class="age-widget">
               <div class="age-addressBoard" aria-label="Company addresses">
+                <!-- Office -->
                 <div class="age-addressSection">
                   <div class="age-addressTitle">Office Address</div>
-                  <div class="age-addressLines">
+                  <a
+                    class="age-addressLines age-addrLink"
+                    href="https://maps.google.com/?q=404,+4th+Floor,+Safal+Prelude,+Behind+YMCA+Club,+Corporate+Road,+Prahlad+Nagar,+Ahmedabad,+Gujarat,+India+380015"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     <div>404, 4th Floor, Safal Prelude,</div>
                     <div>Behind YMCA Club, Corporate Road,</div>
                     <div>Prahlad Nagar, Ahmedabad, Gujarat, India – 380015</div>
-                  </div>
+                  </a>
                 </div>
+
+                <!-- Factory -->
                 <div class="age-addressSection">
                   <div class="age-addressTitle">Factory Address</div>
-                  <div class="age-addressLines">
+                  <a
+                    class="age-addressLines age-addrLink"
+                    href="https://maps.google.com/?q=1,+Mohan+Estate,+Ramol+Road,+Ahmedabad,+Gujarat,+India+382449"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     <div>1, Mohan Estate, Ramol Road,</div>
                     <div>Ahmedabad, Gujarat, India – 382449</div>
-                  </div>
+                  </a>
                 </div>
+
+                <!-- Warehouse -->
                 <div class="age-addressSection">
                   <div class="age-addressTitle">Warehouse Address</div>
-                  <div class="age-addressLines">
+                  <a
+                    class="age-addressLines age-addrLink"
+                    href="https://maps.google.com/?q=Nr.+Ambuja+Synthetics,+B/H+Old+Narol+Court,+Narol,+Ahmedabad,+Gujarat,+India+382405"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     <div>Nr. Ambuja Synthetics, B/H Old Narol Court,</div>
                     <div>Narol, Ahmedabad, Gujarat, India – 382405</div>
-                  </div>
+                  </a>
                 </div>
+
+                <!-- UAE -->
                 <div class="age-addressSection age--noSep">
                   <div class="age-addressTitle">UAE Office Address</div>
-                  <div class="age-addressLines">
+                  <a
+                    class="age-addressLines age-addrLink"
+                    href="https://maps.google.com/?q=GSK+Worldwide+FZE,+Ajman+Free+Zone,+UAE"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     <div>GSK Worldwide FZE, Ajman Free Zone, UAE</div>
-                  </div>
+                  </a>
                 </div>
               </div>
             </div>
@@ -280,7 +307,7 @@ const year = new Date().getFullYear();
       --TEXT_SOFT:  rgba(233,241,250,.78);
       --BORDER_SOFT: rgba(255,255,255,.12);
 
-      font-family: var(--tp-ff-body); /* ✅ Only theme font */
+      font-family: var(--tp-ff-body);
       color: var(--TEXT_MAIN);
     }
     .age-footer__gradient{ background:linear-gradient(180deg,var(--BG_TOP),var(--BG_BOTTOM)); border-top:1px solid var(--BORDER_SOFT); }
@@ -296,7 +323,6 @@ const year = new Date().getFullYear();
     .age-footer__top{ padding:48px 0 26px; }
     .age-footer__bottom{ background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,0)); border-top:1px solid var(--BORDER_SOFT); padding:14px 0 20px; }
 
-    /* Headings use display token; weight 700 (Hind max in your import) */
     .age-title{
       font-family: var(--tp-ff-display);
       color:var(--TEXT_MAIN);
@@ -339,7 +365,6 @@ const year = new Date().getFullYear();
     .age-newsMini{ margin:6px 0 12px; }
     .age-newsDesc{ color:var(--TEXT_SOFT); margin:0 0 10px; font-size:18px; line-height:1.65; }
 
-    /* Ensure inputs use theme font */
     .age-pill{ position:relative; display:flex; align-items:center; background:#fff; border:1px solid rgba(0,0,0,.04); border-radius:9999px; height:52px; padding:6px; box-shadow:0 10px 26px rgba(0,0,0,.18); }
     .age-pill input{
       flex:1; height:100%; background:transparent; border:none; color:#0b1220; padding:0 18px; outline:none; font-size:15px;
@@ -363,7 +388,7 @@ const year = new Date().getFullYear();
       color:var(--TEXT_SOFT); 
     }
 
-    /* Clickable address link */
+    /* Clickable address link (used for both HQ & address board) */
     .age-addrLink{
       text-decoration:none;
       color:var(--TEXT_SOFT) !important;
@@ -374,7 +399,6 @@ const year = new Date().getFullYear();
       transition:all 0.3s ease;
       display:block;
     }
-
     .age-addrLink:hover{
       color:var(--BRAND_GOLD) !important;
       background:rgba(255,255,255,0.05);
@@ -382,12 +406,16 @@ const year = new Date().getFullYear();
       transform:translateY(-1px);
       box-shadow:0 4px 12px rgba(0,0,0,0.15);
     }
-
     .age-addrLink div{
       transition:color 0.3s ease;
     }
 
-    /* SOCIAL: wrap; no scrollbars; same visual weight */
+    /* Slight tweak when inside the left address board so padding/margins fit its card layout */
+    .age-addressBoard .age-addrLink{
+      margin:-4px -8px;
+      padding:6px 8px;
+    }
+
     .age-social{
       display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; align-items:center;
       max-width:100%; overflow:visible; -ms-overflow-style:none; scrollbar-width:none;
@@ -445,7 +473,6 @@ const year = new Date().getFullYear();
       .age-addrLink{ padding:6px 10px; margin:-6px -10px; }
     }
 
-    /* Optional dark mode tweaks */
     :global(.theme-dark) .age-footer{
       --TEXT_MAIN: var(--tp-common-black, #e7edf6);
       --TEXT_SOFT: rgba(231,237,246,.78);

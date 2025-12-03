@@ -67,7 +67,7 @@ const STATIC_TAGLINE = "ISO 9001 Certified • 500+ Global Partners • Ships to
 /* ===== Dynamic body + image ===== */
 const p1 = cleanHtml(pickHtml(seo) || pickHtml(product) || "");
 const p2 = cleanHtml(seo?.productlocationdescription2 || product?.productlocationdescription2 || "");
-const image = product?.image1 || product?.image3 || product?.image2 || "";
+const image = product?.image2 || product?.image3 || product?.image1 || "";
 const imageAlt = seo?.title || product?.name || "Fabric image";
 ---
 

@@ -17,9 +17,9 @@ interface Product {
   productdescription?: string;
   description?: string;
   altimg1?: string;
-  img?: string;
   image1?: string;
   image2?: string;
+   image3?: string;
   category?: { name: string } | string;
   location?: any;
 }
@@ -404,7 +404,7 @@ const processedProducts: ProcessedProduct[] = filteredRows.map((row: any) => {
     productdescription: p.productdescription || p.description || "",
     price: p.salesPrice ?? null,
     originalPrice: p.purchasePrice ?? null,
-    image: p.image3 || p.image1 || p.image2 || "/images/placeholder-800x600.svg",
+    image: p.image1 || p.image2 || p.image3 || "/images/placeholder-800x600.svg",
     rating: Number(p.rating_value ?? 0),
     ratingCount: Number(p.rating_count ?? 0),
     slug: p.slug || "",

@@ -43,7 +43,7 @@ const joinNames = (arr: any[]) =>
     : undefined;
 
 const pickImg = (p: any) =>
-  String(p?.image3 || p?.image1 || p?.image2 || "/images/placeholder-800x600.svg");
+  String(p?.image1 || p?.image2 || p?.image3 || "/images/placeholder-800x600.svg");
 
 const currentSlugNorm = norm(currentSlug);
 
