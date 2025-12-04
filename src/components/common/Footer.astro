@@ -1,8 +1,13 @@
 ---
-/* Load your social list */
+/* Load your social list (fallback) */
 import social_data from '../../data/social-data.ts';
 
-type Social = { id?: string | number; label?: string; icon?: string; link?: string };
+type Social = {
+  id?: string | number;
+  label?: string;
+  icon?: string;
+  link?: string;
+};
 
 /* Trusted badges (Astro serves /public at the web root) */
 const trustedLogos = [
@@ -14,23 +19,101 @@ const trustedLogos = [
   { src: '/images/brand/gold.avif',                  alt: 'Organic 100 Content Standard' },
 ];
 
+/* ----------------------------------------------------------
+   Fetch office information from API
+-----------------------------------------------------------*/
+const API_BASE =
+  import.meta.env.PUBLIC_API_BASE_URL ?? 'https://test.amrita-fashions.com';
+
+let officeInfo: any = null;
+
+try {
+  const res = await fetch(`${API_BASE}/api/officeinformation`);
+  if (res.ok) {
+    const json = await res.json();
+    officeInfo = json?.data?.[0] ?? null;
+  }
+} catch (err) {
+  console.error('Error fetching officeinformation:', err);
+}
+
+/* Safe helpers with fallback values */
+const fallbackAddress =
+  '404, Safal Prelude, Corporate Rd, Prahlad Nagar, Ahmedabad, Gujarat 380015';
+
+const companyName = officeInfo?.companyName ?? 'Amrita Global Enterprises';
+const companyEmail = officeInfo?.companyEmail ?? 'info@amrita-fashions.com';
+
+const companyPhone1Raw = officeInfo?.companyPhone1 ?? '+919925155141';
+const whatsappRaw = officeInfo?.whatsappNumber ?? companyPhone1Raw;
+
+const companyPhone1 = companyPhone1Raw.replace(/\s+/g, '');
+const whatsappNumber = whatsappRaw.replace(/\s+/g, '');
+
+const hqAddress = officeInfo?.companyAddress ?? fallbackAddress;
+const hqAddressParts = hqAddress.split(',').map((p: string) => p.trim());
+const hqAddressMapHref = `https://maps.google.com/?q=${encodeURIComponent(hqAddress)}`;
+
+/* Social links from API */
+const apiSocialsRaw: Social[] = [
+  officeInfo?.facebook && {
+    id: 'facebook-api',
+    label: 'Facebook',
+    icon: 'facebook',
+    link: officeInfo.facebook,
+  },
+  officeInfo?.instagram && {
+    id: 'instagram-api',
+    label: 'Instagram',
+    icon: 'instagram',
+    link: officeInfo.instagram,
+  },
+  officeInfo?.linkedin && {
+    id: 'linkedin-api',
+    label: 'LinkedIn',
+    icon: 'linkedin',
+    link: officeInfo.linkedin,
+  },
+  officeInfo?.twitter && {
+    id: 'twitter-api',
+    label: 'X (Twitter)',
+    icon: 'x',
+    link: officeInfo.twitter,
+  },
+  officeInfo?.youtube && {
+    id: 'youtube-api',
+    label: 'YouTube',
+    icon: 'youtube',
+    link: officeInfo.youtube,
+  },
+].filter(Boolean) as Social[];
+
+/* Normalise + dedupe helper */
 const norm = (it: Social) =>
-  `${(it?.label||'').toLowerCase().trim()}|${(it?.icon||'').toLowerCase().trim()}|${(it?.link||'').toLowerCase().replace(/\/+$/,'').trim()}`;
+  `${(it?.label || '').toLowerCase().trim()}|${
+    (it?.icon || '').toLowerCase().trim()
+  }|${(it?.link || '')
+    .toLowerCase()
+    .replace(/\/+$/, '')
+    .trim()}`;
 
 const isYouTube = (it: Social) => {
   const s = `${it?.label ?? ''} ${it?.icon ?? ''} ${it?.link ?? ''}`.toLowerCase();
   return s.includes('youtube') || s.includes('youtu.be') || s.includes('youtube.com');
 };
 
-/* Deduplicate & cap to 5 */
+/* Deduplicate & cap to 5: API social links get priority, then fallback social_data */
 const socials: Social[] = (() => {
   const seen = new Set<string>();
-  const cleaned = (social_data as Social[] || []).filter((it) => {
+  const merged: Social[] = [...apiSocialsRaw, ...(social_data as Social[] || [])];
+
+  const cleaned = merged.filter((it) => {
     const key = norm(it);
     if (seen.has(key)) return false;
     seen.add(key);
     return Boolean(it?.link) && Boolean(it?.icon || it?.label);
   });
+
   return cleaned.slice(0, 5);
 })();
 
@@ -168,7 +251,13 @@ const year = new Date().getFullYear();
                       <path d="M22 16.92v2a2 2 0 0 1-2.18 2 19.84 19.84 0 0 1-8.63-3.07A19.5 19.5 0 0 1 3.15 12.8 19.84 19.84 0 0 1 .08 4.18 2 2 0 0 1 2.06 2h2a2 2 0 0 1 2 1.72c.12.86.34 1.7.66 2.5a2 2 0 0 1-.45 2.11L5.4 9.91a16 16 0 0 0 8.69 8.69l1.58-1.87a2 2 0 0 1 2.11-.45c.8.32 1.64.54 2.5.66A2 2 0 0 1 22 16.92z"/>
                     </svg>
                   </span>
-                  <a class="age-talkLink" href="tel:+919925155141">+91 9925155141</a>
+                  <!-- PHONE FROM API (whatsappNumber or companyPhone1) -->
+                  <a
+                    class="age-talkLink"
+                    href={`tel:${whatsappNumber || companyPhone1}`}
+                  >
+                    {whatsappNumber || companyPhone1}
+                  </a>
                 </div>
                 <div class="age-talkRow">
                   <span class="age-talkIcon">
@@ -178,11 +267,14 @@ const year = new Date().getFullYear();
                       <path d="m22 6-10 7L2 6"/>
                     </svg>
                   </span>
-                  <a class="age-talkLink" href="mailto:info@amrita-fashions.com">info@amrita-fashions.com</a>
+                  <!-- EMAIL FROM API -->
+                  <a class="age-talkLink" href={`mailto:${companyEmail}`}>
+                    {companyEmail}
+                  </a>
                 </div>
               </div>
 
-              <!-- HQ quick line -->
+              <!-- HQ quick line (dynamic address from API) -->
               <div class="age-talkAddress">
                 <div class="age-addrRow">
                   <span class="age-addrPin">
@@ -193,15 +285,14 @@ const year = new Date().getFullYear();
                     </svg>
                   </span>
                   <a 
-                    href="https://maps.google.com/?q=404+4th+Floor+Safal+Prelude+Corporate+Road+Prahlad+Nagar+Ahmedabad+Gujarat+380015" 
+                    href={hqAddressMapHref} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     class="age-addrLines age-addrLink"
                   >
-                    <div>4th Floor, Safal Prelude</div>
-                    <div>404 Corporate Road, Near YMCA Club,</div>
-                    <div>Prahlad Nagar, Ahmedabad, Gujarat</div>
-                    <div>380015</div>
+                    {hqAddressParts.map((line, idx) => (
+                      <div key={idx}>{line}</div>
+                    ))}
                   </a>
                 </div>
               </div>
@@ -217,15 +308,18 @@ const year = new Date().getFullYear();
                     t.includes('linkedin') ? 'linkedin' :
                     (t.includes('x.com') || t.includes('twitter')) ? 'x' : 'generic';
 
+                  const key = s.id ?? norm(s);
+
                   return (
                     <a
+                      key={key}
                       href={s.link!}
                       target="_blank"
                       rel="noopener noreferrer"
                       aria-label={s.label || 'Social link'}
                       title={s.label || undefined}
                       class="age-socialBtn"
-                      data-key={s.id ?? norm(s)}
+                      data-key={key}
                     >
                       {
                         brand === 'youtube' ? (
@@ -277,7 +371,7 @@ const year = new Date().getFullYear();
         <div class="age-bottomWrap">
           <div class="age-topbar"></div>
           <p class="age-copy">
-            <strong>© {year} Amrita Global Enterprises</strong>
+            <strong>© {year} {companyName}</strong>
             <span class="age-dot">•</span>
             All rights reserved
             <span class="age-dot">•</span>
@@ -286,8 +380,17 @@ const year = new Date().getFullYear();
 
           <div class="age-trust">
             {trustedLogos.map((l) => (
-              <div class="age-trustCard" title={l.alt}>
-                <img src={l.src} alt={l.alt} width="60" height="60" loading="lazy" decoding="async" fetchpriority="low" style="width:36px;height:auto;max-height:36px;" />
+              <div class="age-trustCard" title={l.alt} key={l.alt}>
+                <img
+                  src={l.src}
+                  alt={l.alt}
+                  width="60"
+                  height="60"
+                  loading="lazy"
+                  decoding="async"
+                  fetchpriority="low"
+                  style="width:36px;height:auto;max-height:36px;"
+                />
               </div>
             ))}
           </div>
