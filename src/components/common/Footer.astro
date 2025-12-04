@@ -1,13 +1,8 @@
 ---
-/* Load your social list (fallback) */
+/* Fallback social list */
 import social_data from '../../data/social-data.ts';
 
-type Social = {
-  id?: string | number;
-  label?: string;
-  icon?: string;
-  link?: string;
-};
+type Social = { id?: string | number; label?: string; icon?: string; link?: string };
 
 /* Trusted badges (Astro serves /public at the web root) */
 const trustedLogos = [
@@ -19,9 +14,7 @@ const trustedLogos = [
   { src: '/images/brand/gold.avif',                  alt: 'Organic 100 Content Standard' },
 ];
 
-/* ----------------------------------------------------------
-   Fetch office information from API
------------------------------------------------------------*/
+/* ========= Fetch officeinformation ========= */
 const API_BASE =
   import.meta.env.PUBLIC_API_BASE_URL ?? 'https://test.amrita-fashions.com';
 
@@ -32,30 +25,42 @@ try {
   if (res.ok) {
     const json = await res.json();
     officeInfo = json?.data?.[0] ?? null;
+  } else {
+    console.error('officeinformation fetch failed', res.status);
   }
 } catch (err) {
   console.error('Error fetching officeinformation:', err);
 }
 
-/* Safe helpers with fallback values */
+/* ========= Company / contact fields ========= */
 const fallbackAddress =
   '404, Safal Prelude, Corporate Rd, Prahlad Nagar, Ahmedabad, Gujarat 380015';
 
-const companyName = officeInfo?.companyName ?? 'Amrita Global Enterprises';
-const companyEmail = officeInfo?.companyEmail ?? 'info@amrita-fashions.com';
+const companyName   = officeInfo?.companyName  ?? 'Amrita Global Enterprises';
+const companyEmail  = officeInfo?.companyEmail ?? 'info@amrita-fashions.com';
 
-const companyPhone1Raw = officeInfo?.companyPhone1 ?? '+919925155141';
-const whatsappRaw = officeInfo?.whatsappNumber ?? companyPhone1Raw;
+const phone1Raw     = officeInfo?.companyPhone1  ?? '+919925155141';
+const whatsappRaw   = officeInfo?.whatsappNumber ?? phone1Raw;
 
-const companyPhone1 = companyPhone1Raw.replace(/\s+/g, '');
-const whatsappNumber = whatsappRaw.replace(/\s+/g, '');
+const companyPhone1  = (phone1Raw   || '').replace(/\s+/g, '');
+const whatsappNumber = (whatsappRaw || '').replace(/\s+/g, '');
 
-const hqAddress = officeInfo?.companyAddress ?? fallbackAddress;
+const hqAddress      = officeInfo?.companyAddress ?? fallbackAddress;
 const hqAddressParts = hqAddress.split(',').map((p: string) => p.trim());
 const hqAddressMapHref = `https://maps.google.com/?q=${encodeURIComponent(hqAddress)}`;
 
-/* Social links from API (Twitter URL shown on X icon) */
-const apiSocialsRaw: Social[] = [
+/* ========= Socials (API + fallback) ========= */
+
+const norm = (it: Social) =>
+  `${(it?.label||'').toLowerCase().trim()}|${(it?.icon||'').toLowerCase().trim()}|${(it?.link||'').toLowerCase().replace(/\/+$/,'').trim()}`;
+
+const isYouTube = (it: Social) => {
+  const s = `${it?.label ?? ''} ${it?.icon ?? ''} ${it?.link ?? ''}`.toLowerCase();
+  return s.includes('youtube') || s.includes('youtu.be') || s.includes('youtube.com');
+};
+
+/* API socials */
+const apiSocials: Social[] = [
   officeInfo?.facebook && {
     id: 'facebook-api',
     label: 'Facebook',
@@ -78,7 +83,7 @@ const apiSocialsRaw: Social[] = [
     id: 'x-api',
     label: 'X (Twitter)',
     icon: 'x',
-    link: officeInfo.twitter,        // <— your Twitter URL, opened by X icon
+    link: officeInfo.twitter,
   },
   officeInfo?.youtube && {
     id: 'youtube-api',
@@ -88,27 +93,23 @@ const apiSocialsRaw: Social[] = [
   },
 ].filter(Boolean) as Social[];
 
-/* Normalise + dedupe helper */
-const norm = (it: Social) =>
-  `${(it?.label || '').toLowerCase().trim()}|${
-    (it?.icon || '').toLowerCase().trim()
-  }|${(it?.link || '')
-    .toLowerCase()
-    .replace(/\/+$/, '')
-    .trim()}`;
+const hasApiYouTube = Boolean(officeInfo?.youtube);
 
-const isYouTube = (it: Social) => {
-  const s = `${it?.label ?? ''} ${it?.icon ?? ''} ${it?.link ?? ''}`.toLowerCase();
-  return s.includes('youtube') || s.includes('youtu.be') || s.includes('youtube.com');
-};
+/* Fallback socials from social-data.ts
+   – if API has YouTube, drop *all* YouTube entries from fallback */
+const fallbackSocials: Social[] = (social_data as Social[] || []).filter((it) => {
+  if (!hasApiYouTube) return true;
+  return !isYouTube(it);
+});
 
-/* Deduplicate & cap to 5: API social links get priority, then fallback social_data */
+/* Deduplicate (API first) & cap to 5 */
 const socials: Social[] = (() => {
   const seen = new Set<string>();
-  const merged: Social[] = [...apiSocialsRaw, ...(social_data as Social[] || [])];
+  const merged = [...apiSocials, ...fallbackSocials];
 
   const cleaned = merged.filter((it) => {
-    const key = norm(it);
+    const key = (it?.link || '').toLowerCase().replace(/\/+$/,'').trim();
+    if (!key) return false;
     if (seen.has(key)) return false;
     seen.add(key);
     return Boolean(it?.link) && Boolean(it?.icon || it?.label);
@@ -130,7 +131,7 @@ const year = new Date().getFullYear();
           <div class="age-col" role="listitem">
             <div class="age-widget">
               <div class="age-addressBoard" aria-label="Company addresses">
-                <!-- Office -->
+                <!-- Office (static detailed block – keep as is) -->
                 <div class="age-addressSection">
                   <div class="age-addressTitle">Office Address</div>
                   <a
@@ -194,18 +195,10 @@ const year = new Date().getFullYear();
             <div class="age-widget">
               <h4 class="age-title">Quick Links</h4>
               <ul class="age-list">
-                <li>
-                  <a href="/" class="age-link age-navLink">Home</a>
-                </li>
-                <li>
-                  <a href="#aboutus" class="age-link age-navLink">About</a>
-                </li>
-                <li>
-                  <a href="#products" class="age-link age-navLink">Products</a>
-                </li>
-                <li>
-                  <a href="#testimonials" class="age-link age-navLink">Testimonials</a>
-                </li>
+                <li><a href="/" class="age-link age-navLink">Home</a></li>
+                <li><a href="#aboutus" class="age-link age-navLink">About</a></li>
+                <li><a href="#products" class="age-link age-navLink">Products</a></li>
+                <li><a href="#testimonials" class="age-link age-navLink">Testimonials</a></li>
               </ul>
             </div>
           </div>
@@ -215,12 +208,8 @@ const year = new Date().getFullYear();
             <div class="age-widget">
               <h4 class="age-title">Information</h4>
               <ul class="age-list">
-                <li>
-                  <a href="#contact" class="age-link age-navLink">Contact</a>
-                </li>
-                <li>
-                  <a href="#faq" class="age-link age-navLink">FAQ</a>
-                </li>
+                <li><a href="#contact" class="age-link age-navLink">Contact</a></li>
+                <li><a href="#faq" class="age-link age-navLink">FAQ</a></li>
                 <li><a href="/market-area" class="age-link">Market Area</a></li>
               </ul>
             </div>
@@ -242,7 +231,7 @@ const year = new Date().getFullYear();
                 </form>
               </div>
 
-              <!-- Phone / Email -->
+              <!-- Phone / Email (DYNAMIC) -->
               <div class="age-talk">
                 <div class="age-talkRow">
                   <span class="age-talkIcon">
@@ -272,7 +261,7 @@ const year = new Date().getFullYear();
                 </div>
               </div>
 
-              <!-- HQ quick line (dynamic address from API) -->
+              <!-- HQ quick line (DYNAMIC address) -->
               <div class="age-talkAddress">
                 <div class="age-addrRow">
                   <span class="age-addrPin">
@@ -283,19 +272,19 @@ const year = new Date().getFullYear();
                     </svg>
                   </span>
                   <a 
-                    href={hqAddressMapHref} 
+                    href={hqAddressMapHref}
                     target="_blank" 
                     rel="noopener noreferrer"
                     class="age-addrLines age-addrLink"
                   >
                     {hqAddressParts.map((line, idx) => (
-                      <div key={idx}>{line}</div>
+                      <div>{line}</div>
                     ))}
                   </a>
                 </div>
               </div>
 
-              <!-- Social -->
+              <!-- Social (API + fallback) -->
               <div class="age-social" role="group" aria-label="Social links">
                 {socials.map((s) => {
                   const t = `${s?.label ?? ''} ${s?.icon ?? ''} ${s?.link ?? ''}`.toLowerCase();
@@ -310,7 +299,6 @@ const year = new Date().getFullYear();
 
                   return (
                     <a
-                      key={key}
                       href={s.link!}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -378,17 +366,8 @@ const year = new Date().getFullYear();
 
           <div class="age-trust">
             {trustedLogos.map((l) => (
-              <div class="age-trustCard" title={l.alt} key={l.alt}>
-                <img
-                  src={l.src}
-                  alt={l.alt}
-                  width="60"
-                  height="60"
-                  loading="lazy"
-                  decoding="async"
-                  fetchpriority="low"
-                  style="width:36px;height:auto;max-height:36px;"
-                />
+              <div class="age-trustCard" title={l.alt}>
+                <img src={l.src} alt={l.alt} width="60" height="60" loading="lazy" decoding="async" fetchpriority="low" style="width:36px;height:auto;max-height:36px;" />
               </div>
             ))}
           </div>
@@ -398,7 +377,7 @@ const year = new Date().getFullYear();
   </div>
 
   <style>
-    /* Map to theme tokens (no font imports; only Hind via --tp-ff-*) */
+    /* your existing CSS exactly as you pasted (unchanged) */
     .age-footer{
       --BG_TOP:     var(--tp-theme-1, #112338);
       --BG_BOTTOM:  var(--tp-footer-grey-1, #142A42);
@@ -489,7 +468,6 @@ const year = new Date().getFullYear();
       color:var(--TEXT_SOFT); 
     }
 
-    /* Clickable address link (used for both HQ & address board) */
     .age-addrLink{
       text-decoration:none;
       color:var(--TEXT_SOFT) !important;
