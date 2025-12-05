@@ -802,7 +802,12 @@ const structuredDataJson = structuredData
   />
 
   <WhatsAppFab />
-  <FashionTestimonial />
+  <FashionTestimonial
+  locationName={
+    seoDoc?.location?.name ||
+    (currentCity && currentCity.charAt(0).toUpperCase() + currentCity.slice(1))
+  }
+/>
   <FAQ />
   <ContactSection />
   <MarketAreaModal />

@@ -10,6 +10,13 @@ type TItem = {
   tags: string[];
 };
 
+interface Props {
+  /** Optional location, e.g. "Maharashtra", "Mumbai", "Jaipur, RJ" */
+  locationName?: string;
+}
+
+const { locationName } = Astro.props as Props;
+
 const DATA: TItem[] = [
   {
     id: 1,
@@ -71,6 +78,20 @@ const metrics = [
 ];
 
 const TOTAL = ITEMS.length;
+
+/** Use dynamic location (e.g. "Maharashtra") if passed, else item.location */
+const resolveLocation = (itemLocation: string) => {
+  if (locationName && locationName.trim().length > 0) {
+    return locationName.trim();
+  }
+  return itemLocation;
+};
+
+/** Heading suffix: (in Maharashtra) */
+const headingLocationSuffix =
+  locationName && locationName.trim().length > 0
+    ? ` (in ${locationName.trim()})`
+    : "";
 ---
 
 <section
@@ -82,7 +103,9 @@ const TOTAL = ITEMS.length;
     <div class="age-head">
       <div class="eyebrow">WHAT OUR CUSTOMERS SAY</div>
       <span class="badge"><i></i>Verified Industry Feedback</span>
-      <h2 id="age-testi-title" class="title">Trusted by Fabric Buyers</h2>
+      <h2 id="age-testi-title" class="title">
+        Trusted by Fabric Buyers{headingLocationSuffix}
+      </h2>
     </div>
 
     <div class="slider-wrap">
@@ -150,7 +173,9 @@ const TOTAL = ITEMS.length;
                   <div class="client">
                     <div class="industry">{item.industry}</div>
                     <div class="dot"></div>
-                    <div class="loc">{item.location}</div>
+                    <div class="loc">
+                      {resolveLocation(item.location)}
+                    </div>
                   </div>
 
                   <div class="tags" aria-label="tags">
