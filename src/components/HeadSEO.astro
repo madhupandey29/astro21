@@ -8,7 +8,7 @@
  * - <title>
  * - <meta name="description">
  * - <link rel="canonical">
- * Those should be handled by the main layout using API values.
+ * Those are handled by the main layout using API values passed as props.
  */
 
 interface Props {
@@ -112,8 +112,7 @@ const twitterSite  = asText(pickSeo("twitterSite", "twittersite"));
 /**
  * For Twitter title/description:
  * - Prefer dedicated twitterTitle/twitterDescription if present.
- * - If not, we MAY fall back to title/description that also came from APIs.
- *   This is still API-sourced data, not hard-coded.
+ * - If not, fall back to title/description that also came from APIs.
  */
 const rawTwitterTitle = pickSeo("twitterTitle", "twittertitle");
 const twitterTitle = asText(rawTwitterTitle ?? title);
@@ -141,8 +140,7 @@ const clarityId  = pickSeo("clarityId", "clarityid");
 /**
  * URL for OG/Twitter:
  * - Use canonical prop if provided (this should come from API).
- * - If not provided, we DO NOT invent a URL for meta. Meta should
- *   only use API-driven URL. So og:url is printed only if canonical exists.
+ * - If not provided, we do NOT invent a URL.
  */
 const urlForMeta = canonical && canonical.trim().length
   ? canonical.trim()

@@ -5,13 +5,14 @@ import Footer from "../components/common/Footer.astro";
 import PerfBooster from "../components/common/PerfBooster.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 
-const {
-  title = "Landing",
-  description = "",
-} = Astro.props as { title?: string; description?: string };
+interface LayoutProps {
+  /** These should come from your SEO APIs only */
+  title?: string;
+  description?: string;
+  canonical?: string;
+}
 
-const reqUrl = new URL(Astro.request.url);
-const canonical = reqUrl.origin + reqUrl.pathname;
+const { title, description, canonical } = Astro.props as LayoutProps;
 ---
 
 <!doctype html>
@@ -21,12 +22,9 @@ const canonical = reqUrl.origin + reqUrl.pathname;
     <!-- Viewport default; pages can override in head slot -->
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <!-- Fallback title/description -->
-    <title>{title}</title>
-    <meta name="description" content={description} />
-
-    <!-- Canonical from live request URL -->
-    <link rel="canonical" href={canonical} />
+    {title && <title>{title}</title>}
+    {description && <meta name="description" content={description} />}
+    {canonical && <link rel="canonical" href={canonical} />}
 
     <!-- Favicons -->
     <link rel="icon" href="/favicon.svg" />
@@ -38,7 +36,7 @@ const canonical = reqUrl.origin + reqUrl.pathname;
     <link rel="preconnect" href="https://res.cloudinary.com" crossorigin />
     <meta name="color-scheme" content="light dark" />
 
-    <!-- Page-level SEO injection (INCLUDING <title>) BEFORE scripts -->
+    <!-- Page-level SEO injection (extra meta/OG/Twitter) BEFORE scripts -->
     <slot name="head" />
 
     <!-- Load URL lock from external module (content won't show in View Source) -->

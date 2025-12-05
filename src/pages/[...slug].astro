@@ -25,7 +25,7 @@ export const prerender = false;
 const DEFAULT_CITY_CODE = "ahmedabad";
 const OVERVIEW_IMG = "/images/hero/overview-fabric.webp";
 
-/** Fixed default product slug (used when slug is missing) */
+/** Fixed default product slug used only for internal non-SEO logic */
 const FALLBACK_PRODUCT_SLUG = "premium-cotton-t-shirt";
 
 // SEO + office APIs
@@ -189,11 +189,11 @@ const isCityLanding =
   !isHomePage && !isProductLocationPage && CITY_CODES.includes(first);
 const isCityPage = isCityLanding;
 
-/* ========= Request URL / canonical base ========= */
+/* ========= Request URL (only for "Home" breadcrumb origin) ========= */
 
 const reqUrl = new URL(Astro.request.url);
 
-/* ========= GEO-based slugs + URL ========= */
+/* ========= GEO-based slugs ========= */
 
 let geo: GeoSlugs | null = await getGeoSlugsFromRequest(Astro.request);
 if (!geo) {
@@ -223,11 +223,9 @@ if (isProductLocationPage && geo) {
   locationSlug = (locationSlug || geo.areaSlug) as string;
 }
 
-// This is the "display URL" used internally for geo product URL meta
+// For internal non-SEO use only
 const slugForGeo =
   (productSlugFromUrl || FALLBACK_PRODUCT_SLUG).toLowerCase();
-
-const geoProductUrl = `${reqUrl.origin}/${slugForGeo}/in/${geo.countrySlug}/${geo.stateSlug}/${geo.citySlug}/${geo.areaSlug}`;
 
 /* ========= City / current-city helpers ========= */
 
@@ -450,7 +448,7 @@ if (!isMarketAreaModalPath) {
   }
 }
 
-/* ========= Page-level title/description (UI / layout props) ========= */
+/* ========= Page-level title/description (layout props) ========= */
 /**
  * These props are used by the layout and for on-page visible headings.
  * They only use values coming from APIs (seoDoc and productDoc).
@@ -465,22 +463,21 @@ const derivedTitleFromData =
   seoDoc?.title ||
   "";
 
-// This is mainly for UI / heading. Real <title>/<meta description> should
-// be controlled by your layout using seoDoc/defaultseo if needed.
-const pageTitle = isMarketAreaModalPath
-  ? "Select Market Area"
-  : derivedTitleFromData;
+// For SEO meta: if we don't have any API-driven title/desc, we simply don't render them.
+const pageTitle =
+  derivedTitleFromData && derivedTitleFromData.trim().length
+    ? derivedTitleFromData
+    : undefined;
 
-const pageDesc = isMarketAreaModalPath
-  ? "Choose your country, state, and city to find local market information."
-  : seoDoc?.description ||
+const pageDesc =
+  (seoDoc?.description ||
     seoDoc?.excerpt ||
     productDoc?.shortProductDescription ||
-    "";
+    "") || undefined;
 
 /**
  * Canonical: use ONLY the value that comes from API (seoDoc.canonical_url).
- * No fallback to request URL. If backend doesn't send it, canonical will be undefined.
+ * No fallback to request URL.
  */
 const canonical =
   typeof seoDoc?.canonical_url === "string" &&
@@ -557,6 +554,17 @@ const company = {
   address: (officeDoc?.companyAddress ?? "").trim(),
   logo: (officeDoc?.companyLogoUrl ?? "").trim(),
 };
+
+/* ========= Extra app-level meta values from API ========= */
+/** These are now API-driven, not computed from IP+fallback. */
+const xGeoProductUrl =
+  (seoDoc?.xGeoProductUrl && String(seoDoc.xGeoProductUrl).trim()) ||
+  undefined;
+
+const xProductSlug =
+  (seoDoc?.xProductSlug && String(seoDoc.xProductSlug).trim().toLowerCase()) ||
+  (productDoc?.slug && String(productDoc.slug).trim().toLowerCase()) ||
+  undefined;
 
 /* ========= JSON-LD ========= */
 
@@ -727,9 +735,13 @@ const structuredDataJson = structuredData
     {/* All meta/OG/Twitter comes from APIs via seoDoc + defaultseo */}
     <HeadSEO seo={seoDoc} canonical={canonical} />
 
-    {/* Extra internal meta for your app */}
-    <meta name="x-geo-product-url" content={geoProductUrl} />
-    <meta name="x-product-slug" content={slugForGeo} />
+    {/* Extra internal meta for your app – now API-driven */}
+    {xGeoProductUrl && (
+      <meta name="x-geo-product-url" content={xGeoProductUrl} />
+    )}
+    {xProductSlug && (
+      <meta name="x-product-slug" content={xProductSlug} />
+    )}
 
     {/* JSON-LD schema */}
     {structuredDataJson.map((json) => (
